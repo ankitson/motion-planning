@@ -1,11 +1,300 @@
-<!DOCTYPe html>
+<!DOCTYPE html>
 <html>
 <head>
   <title>App</title>
+  <script type="text/javscript" src="javascripts/jquery-2.1.1.min.js"></script>
 </head>
 
 <body>
-  <canvas id="canvas" width="800" height="800"></canvas>
+  <div id="container"></div>
+  <script type="text/javscript" src="javascripts/jquery-2.1.1.min.js"></script>
+  <script type="text/javscript" src="javascripts/main.js"></script>
+  <script type="text/javascript" src="javascripts/kinetic-v5.1.0.min.js"></script>
+  <script type="text/javascript" src="javascripts/lodash.js"></script>
+  <script type="text/javascript">
+      /*var canvas = document.getElementById('canvas');
+    if (canvas.getContext) {
+      var ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = "rgb(200,0,0)";
+      ctx.fillRect (10, 10, 55, 50);
+
+      ctx.filLStyle = "rgba(0, 0, 200, 0.5)";
+      ctx.fillRect = (30,30,55,50);
+    }*/
+
+      var stage = new Kinetic.Stage({
+          container: 'container',
+          width: 800,
+          height: 800
+      });
+
+      var layer = new Kinetic.Layer();
+
+      var rect = new Kinetic.Rect({
+          x: 239,
+          y: 75,
+          width: 100,
+          height: 50,
+          fill: 'green',
+          stroke: 'black',
+          strokeWidth: 4
+      });
+
+      var poly = new Kinetic.Line({
+          points: [73,192,73,160,340,23,500,109,499,139],
+          fill: '#00D2ff',
+          stroke: 'black',
+          strokeWidth: 5,
+          closed: true
+      });
+
+      layer.add(rect);
+      layer.add(poly);
+
+      stage.add(layer);
+
+
+      //util.js
+      function shuffle(o){
+        for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+        return o;
+      };
+
+      //point
+      function Point(x,y) {
+          this.x = x;
+          this.y = y;
+      }
+
+      //points downright _1_|_3_
+      //                 _2_|_4_
+      function Trapezoid(points, node) {
+          this.points = points;
+          this.node = node;
+      }
+
+      Trapezoid.prototype.toSegments = function() {
+          var segments = [];
+          segments.push([points[0], points[1]]);
+          segments.push([points[1], points[3]]);
+          segments.push([points[3], points[2]]);
+          segments.push([points[2], points[0]]);
+          return segments;
+      }
+
+      function Node(data,type,left,right) {
+          this.data =  data;
+          this.type =  type; //x node (point), y node (segment) or leaf (trap)
+          this.left =  left;
+          this.right = right;
+      }
+
+      function SearchTree(root) {
+          this.root = root;
+      }
+
+      function locate(root, point) {
+          if (root === null)
+              return null;
+
+          if (root.type === 'leaf') {
+              return root;
+          }
+
+          if (root.type === 'x') {
+              if (point.x < root.data.x) {
+                  locate(root.left, point);
+              } else {
+                  locate(root.right, point)
+              }
+          }
+
+          if (root.type === 'y') {
+              seg = root.data;
+              if (verticallyAbove(point,seg)) {
+                  locate(root.left,point);
+              } else {
+                  locate(root.right,point);
+              }
+          }
+      }
+
+
+      //generate a trapezoidal map, and a structure supporting point location queries
+      //input: array of Kinetic.Line objects in general position
+      //output:
+      function generateTrapMap(segments) {
+          var bbox = new Trapezoid(new Point(0,0), new Point(0,800), new Point(800,0), new Point(800,800));
+          var trapSeq = [bbox];
+          var trapSearch = new SearchTree(null);
+          var bboxNode = new Node(bbox,'leaf',null,null);
+          trapSearch.root = bboxNode;
+          bbox.node = bboxNode;
+
+          var segs = shuffle(segments);
+
+          for (var i=0;i<segs.length;i++) {
+              var segment = segs[i];
+              var p = segment[0];
+              var q = segment[1];
+
+              var intersectingTraps = followSegment(trapSeq, trapSearch, segment);
+
+              //remove intersecting traps from seq
+              trapSeq = _.remove(trapSeq, function(elem) {
+                  var toRemove = false;
+                  for (var j=0;j<intersectingTraps.length;j++) {
+                      if (_.equal(intersectingTraps[j], elem)) //for object equals()
+                          toRemove = true;
+                  }
+                  return toRemove;
+              });
+
+              //update tree
+              if (intersectingTraps.length === 1) {
+                  var trap = intersectingTraps[0]
+                  var toRemove = trap.node;
+
+                  var ext1 = new Line(1,0,p.x); //the line x = p.x
+                  var ext2 = new Line(1,0,q.x);
+
+                  var trapSegments = trap.toSegments();
+                  var topEdge = trapSegments[3];
+                  var bottomEdge = trapSegments[1];
+
+                  var topLeft = lineIntersect(ext1,topEdge);
+                  var bottomLeft = lineIntersect(ext1,bottomEdge);
+                  var bottomRight = lineIntersect(ext2,bottomEdge);
+                  var topRight = lineIntersect(ext2,topEdge);
+
+                  var trap1 = new Trapezoid(trap.points[0], trap.points[1],topLeft,bottomLeft);
+                  var trap2 = new Trapezoid(topLeft,p,q,topRight);
+                  var trap3 = new Trapezoid(p,bottomLeft,bottomRight,q);
+                  var trap4 = new Trapezoid(topRight,bottomRight,trap.points[2],trap.points[3]);
+
+                  var trap1Node = new Node(trap1,'leaf',null,null);
+                  var trap2Node = new Node(trap2,'leaf',null,null);
+                  var trap3Node = new Node(trap3,'leaf',null,null);
+                  var trap4Node = new Node(trap4,'leaf',null,null);
+
+                  trap1.node = trap1Node;
+                  trap2.node = trap2Node;
+                  trap3.node = trap3Node;
+                  trap4.node = trap4Node;
+
+                  trapSeq.push(trap1);
+                  trapSeq.push(trap2);
+                  trapSeq.push(trap3);
+                  trapSeq.push(trap4);
+
+                  var yNode = new Node(segment, 'y', trap2Node, trap3Node);
+                  var xNode2 = new Node(q,'x', yNode, trap4Node);
+                  var xNode1 = new Node(p, 'x', trap1Node, xNode2);
+                  toRemove = xNode1;
+              } else {  //update for more than 1 intersecting trap
+
+              }
+          }
+
+          return [trapSeq,trapSearch];
+      }
+
+      function Line(a,b,c) {
+          this.a = a;
+          this.b = b;
+          this.c = c;
+      }
+
+      function lineFromPoints(p,q) {
+          var x1 = p.x;
+          var x2 = q.x;
+          var y1 = p.y;
+          var y2 = q.y;
+
+          var m = (y2 - y1) / (x2 - x1);
+          var c = y1 - (m * x1);
+
+          return new Line(-m,1,c);
+      }
+
+      //lines are specified as ax + by = c
+      function lineIntersect(line1,line2) {
+          var a1 = line1.a;
+          var b1 = line1.b;
+          var c1 = line1.c;
+
+          var a2 = line2.a;
+          var b2 = line2.b;
+          var c2 = line2.c;
+
+          var det = a1*b2 - a2*b1;
+          if (det === 0)
+              return null;
+
+          var xc = (b2*c1 - b1*c2)/det;
+          var yc = (a1*c2 - a2*c1)/det;
+
+          return new Point(xc,yc);
+      }
+
+      //assuming trapSeq is sorted with arrow from topleft to downright, down first
+      //go down, then right
+      //returns sequence of traps intersecting segment, sorted left to right
+      function followSegment(trapSeq, trapSearch, segment) {
+          p = segment[0];
+          q = segment[1];
+          //points = segment.getAttr('points');
+          //p = points.slice(0,2);
+          //q = points.slice(2,4);
+
+          trapSequence = new Array();
+          var loc = locate(trapSearch, p);
+          console.log("p: ");
+          console.log(p);
+          console.log("locate: ");
+          console.log(loc);
+          trapSequence.push(locate(trapSearch,p)); //TODO will not work if p is already present (pg 130)
+
+          i = 0;
+          trapI = trapSequence[0];
+
+          while (q.x > trapI.rightPoint().x) {
+              console.log("trapI: ");
+              console.log(trapI);
+              console.log("q: ");
+              console.log(q);
+              console.log("i: ");
+              console.log(i);
+              console.log("trap seq:");
+              console.log(trapSequence);
+              trapI = trapSequence[i];
+
+              j = trapSeq.indexOf(trapI); //TODO implement strict === equality for traps for this to work
+
+              //this logic relies on right point of a trapezoid being uniquely defined
+              //due to general position assumption (no two distinct endpoints share y coord)
+              if (verticallyAbove(trapI.rightPoint(), segment)) {
+                  trapSequence[i+1] = trapSeq[j+2];//lower right neighbor of trapSequence[i]
+              } else {
+                  trapSequence[i+1] = trapSeq[j+1];//upper right neighbor of trapSequence[i]
+              }
+              i++;
+          }
+
+          return trapSequence;
+      }
+
+      function verticallyAbove(point,segment) {
+          return (point.y > Math.max(segment[0].y,segment[1].y));
+      }
+
+      var segment1 = [new Point(1,1), new Point(3,3)];
+      console.log(generateTrapMap([segment1])[0]);
+
+
+
+  </script>
 </body>
 
 </html>
