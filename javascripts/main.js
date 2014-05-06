@@ -51,17 +51,17 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer) {
   }
 
   var ptObjs = [];
-  for (var i=0;i<trapSeq.length;i++) {
+  for (var i=0;i<trapSeq.length;i++) { //create traps,point objs. render traps
     var trap = trapSeq[i];
-
+    var trapPoints = trap.toPoints();
     var pts = [];
     for (var j=0;j<4;j++) {
 
-      pts.push(trap.points[j]);
+      pts.push(trapPoints[j]);
 
       var ptObj = new Kinetic.Circle({
-        x: trap.points[j].x,
-        y: trap.points[j].y,
+        x: trapPoints[j].x,
+        y: trapPoints[j].y,
         radius: 5,
         fill: 'red',
         stroke: 'black'
@@ -70,10 +70,7 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer) {
       ptObjs.push(ptObj);
     }
 
-    console.log("points:");
-    console.log(pts);
     sortCW(pts);
-    console.log(pts);
 
     var ptsFormatted = [];
     for (var j=0;j<pts.length;j++) {
@@ -85,10 +82,10 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer) {
       points: ptsFormatted,
       fill: getRandomColor(),
       stroke: 'black',
-      closed: true
+      closed: true,
+      opacity: 0.5
     });
 
-    console.log(trapObj);
     trapLayer.add(trapObj);
   }
   for (var i=0;i<ptObjs.length;i++) {
@@ -108,7 +105,8 @@ $(document).ready(function() {
   var trapMap = generateTrapMap(segments);
   var trapSeq = trapMap[0];
   var trapSearch = trapMap[1];
-  console.log(trapSeq);
+  console.log('generated trap map:');
+  console.log(trapMap);
 
   var stage = new Kinetic.Stage({
     container: 'container',

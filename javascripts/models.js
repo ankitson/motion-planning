@@ -1,4 +1,4 @@
-//util.js
+//shuffle an array
 function shuffle(o){
   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
   return o;
@@ -10,14 +10,57 @@ function Point(x,y) {
   this.y = y;
 }
 
-//points downright _1_|_3_
-//                 _2_|_4_
-function Trapezoid(points, node) {
-  this.points = points;
+function Trapezoid(topEdge,bottomEdge,leftP,rightP, neighbours, node) {
+  this.topEdge = topEdge;
+  this.bottomEdge = bottomEdge;
+  this.leftP = leftP;
+  this.rightP = rightP;
+  //if there is only 1 l/r neighbor, then upper and lower l/r both point to it
+  this.neighbours = neighbours; //0-upper left, 1-upper right,2-lower left,3-lower-right
   this.node = node;
 }
 
-Trapezoid.prototype.toSegments = function() {
+Trapezoid.prototype.upperLeft = function() { return this.neighbours[0]; }
+Trapezoid.prototype.upperRight = function() { return this.neighbours[1]; }
+Trapezoid.prototype.lowerLeft = function() { return this.neighbours[2]; }
+Trapezoid.prototype.lowerRight = function() { return this.neighbours[3]; }
+
+Trapezoid.prototype.setUpperLeft = function(trap) { this.neighbours[0] = trap; }
+Trapezoid.prototype.setUpperRight = function(trap) { this.neighbours[1] = trap; }
+Trapezoid.prototype.setLowerLeft = function(trap) { this.neighbours[2] = trap; }
+Trapezoid.prototype.setLowerRight = function(trap) { this.neighbours[3] = trap; }
+
+Trapezoid.prototype.leftEdge = function() {
+  return new Line(1,0,this.leftP.x);
+}
+
+Trapezoid.prototype.rightEdge = function() {
+  return new Line(1,0,this.rightP.x);
+}
+
+Trapezoid.prototype.toPoints = function() {
+    var leftLine = new Line(1,0,this.leftP.x);
+    var rightLine = new Line(1,0,this.rightP.x);
+
+    var topLeft = lineIntersect(lineFromSegment(this.topEdge), leftLine);
+    var topRight = lineIntersect(lineFromSegment(this.topEdge),rightLine);
+    var bottomLeft = lineIntersect(lineFromSegment(this.bottomEdge), leftLine);
+    var bottomRight = lineIntersect(lineFromSegment(this.bottomEdge), rightLine);
+
+    return [topLeft, topRight, bottomLeft, bottomRight];
+  }
+
+Trapezoid.prototype.lineIntersection = function(line1) {
+  var p1 = lineSegIntersect(line1,this.topEdge);
+  var p2 = lineSegIntersect(line1,this.bottomEdge);
+  var p3 = lineIntersect(line1,this.leftEdge());
+  var p4 = lineIntersect(line1,this.rightEdge());
+
+  return _.filter([p1,p2,p3,p4], function(elem) { return (elem !== null); } );
+}
+
+
+/*Trapezoid.prototype.toSegments = function() {
   var segments = [];
   segments.push([this.points[0], this.points[1]]);
   segments.push([this.points[1], this.points[3]]);
@@ -55,7 +98,7 @@ Trapezoid.prototype.trapEquals = function(trap2) {
       return false;
   }
   return true;
-}
+}*/
 
 function Node(data,type,left,right) {
   this.data =  data;
@@ -69,23 +112,16 @@ function SearchTree(root) {
 }
 
 function locate(root, point) {
-  console.log("------locate------");
-  console.log([root,point]);
 
   if (root === null) {
-    console.log('returning null');
-    console.log('--------------------');
     return null;
   }
 
   if (root.type === 'leaf') {
-    console.log('returning root');
-    console.log('--------------------');
     return root;
   }
 
   if (root.type === 'x') {
-    console.log('x node: ' + root.data.x);
     if (point.x < root.data.x) {
       return locate(root.left, point);
     } else {
@@ -94,22 +130,17 @@ function locate(root, point) {
   }
 
   if (root.type === 'y') {
-    console.log('y node');
-    console.log(root.data);
     seg = root.data;
-    if (verticallyAbove(point,seg)) {
+    if (verticallyBelow(point,seg)) {
       return locate(root.left,point);
     } else {
       return locate(root.right,point);
     }
   }
 
-  console.log('--------------------');
 }
 
 function findParent(root, node) {
-  console.log('----------findparent------------');
-  console.log([root,node]);
   if (root === null)
     return null;
 
@@ -124,88 +155,19 @@ function findParent(root, node) {
   return parent;
 }
 
-function Line(a,b,c) {
-  this.a = a;
-  this.b = b;
-  this.c = c;
-}
+//replace subtree rooted at node1 by subtree at node2
+function replaceNode(root,node1,node2) {
+  var node1Parent = findParent(root,node1);
+  if (node1Parent === null) //node1 is root
+    return node2;
 
-function lineFromPoints(p,q) {
-  var x1 = p.x;
-  var x2 = q.x;
-  var y1 = p.y;
-  var y2 = q.y;
+  if (node1Parent.left === node1)
+    node1Parent.left = node2;
+  else if (node1Parent.right === node1)
+    node1Parent.right = node2;
+  else
+    console.log('the end is neigh');
 
-  var m = (y2 - y1) / (x2 - x1);
-  var c = y1 - (m * x1);
+  return root;
 
-  return new Line(-m,1,c);
-}
-
-//lines are specified as ax + by = c
-function lineIntersect(line1,line2) {
-  console.log('------line intersect-------');
-  console.log([line1,line2]);
-  var a1 = line1.a;
-  var b1 = line1.b;
-  var c1 = line1.c;
-
-  var a2 = line2.a;
-  var b2 = line2.b;
-  var c2 = line2.c;
-
-  var det = a1*b2 - a2*b1;
-  if (det === 0)
-    return null;
-
-  var xc = (b2*c1 - b1*c2)/det;
-  var yc = (a1*c2 - a2*c1)/det;
-
-  return new Point(xc,yc);
-}
-
-//intersection between a line and a line segment
-function lineSegIntersect(line1,seg2) {
-  var line2 = lineFromPoints(seg[0],seg[1]);
-  var lintsct = lineIntersect(line1,line2);
-
-  var x1 = 1;
-  var x2 = 2;
-  var y1 = 0;
-  var y2 = 0;
-  if (line1.b != 0) {
-    y1 = (line1.c - x1 * line1.a) / (line1.b);
-    y2 = (line1.c - x2 * line1.a) / (line1.b);
-  } else {
-    y1 = 1;
-    y2 = 2;
-    x2 = x1;
-  }
-  var x3 = seg2[0].x;
-  var x4 = seg2[1].x;
-  var y3 = seg2[0].y;
-  var y4 = seg2[1].y;
-
-  if (lintsct === null)
-    return null;
-
-  var denom = ( (y4 - y3) * (x2 -x1) )- ( (x4 - x3) * (y2 - y1) );
-
-  if (denom === 0) //parallel
-    return null;
-
-  var ua = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3)))/denom;
-  var ub = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3)))/denom;
-
-  var xcoord = x1 + ua * (x2 - x1);
-  var ycoord = y1 + ua * (y2 - y1);
-
-  if (ub >= 0 && ub <= 1) //intersection point is within segment 2 (not just line 2)
-    return new Point(xcoord,ycoord);
-
-  return null;
-}
-
-function verticallyAbove(point,segment) {
-  return (point.y > Math.max(segment[0].y,segment[1].y));
 }
