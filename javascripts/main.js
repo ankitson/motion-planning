@@ -39,6 +39,21 @@ function sortCW(points) {
 
 }
 
+function drawPoints(layer, points) {
+  for (var i=0;i<points.length;i++) {
+    var p = points[i];
+    console.log('drawing point: ' + p.x + ',' + p.y);
+    var ptObj = new Kinetic.Circle({
+      x: p.x,
+      y: p.y,
+      radius: 2,
+      fill: 'blue',
+      stroke: 'black'
+    });
+    layer.add(ptObj);
+  }
+}
+
 function draw(trapLayer, trapSeq, trapSearch, segments, segLayer) {
 
   for (var i=0;i < segments.length; i++) {
@@ -64,7 +79,8 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer) {
         y: trapPoints[j].y,
         radius: 5,
         fill: 'red',
-        stroke: 'black'
+        stroke: 'black',
+        text: 'bana'
       });
 
       ptObjs.push(ptObj);
@@ -105,6 +121,8 @@ $(document).ready(function() {
   var trapMap = generateTrapMap(segments);
   var trapSeq = trapMap[0];
   var trapSearch = trapMap[1];
+  var intersectionPoints = trapMap[2];
+
   console.log('generated trap map:');
   console.log(trapMap);
 
@@ -113,6 +131,30 @@ $(document).ready(function() {
     width: 800,
     height: 800
   });
+
+  var mouseLayer = new Kinetic.Layer();
+
+  var mousePosObject = new Kinetic.Text({
+    x: 0,
+    y: 0,
+    fontFamily: 'Arial',
+    fontSize: 12,
+    fill: "blue",
+    stroke: null,
+  })
+
+  mouseLayer.add(mousePosObject);
+
+  $(stage.getContent()).on('mousemove', function (event) {
+    var mousePos = stage.getPointerPosition();
+    var mouseX = parseInt(mousePos.x);
+    var mouseY = parseInt(mousePos.y);
+    mousePosObject.x = mouseX;
+    mousePosObject.y = mouseY;
+    mousePosObject.setText(mouseX+","+mouseY);
+    mouseLayer.draw();
+  });
+
 
   var background = new Kinetic.Layer();
   var boundingBox = new Kinetic.Rect({
@@ -127,8 +169,10 @@ $(document).ready(function() {
   var trapsLayer = new Kinetic.Layer();
   var segsLayer = new Kinetic.Layer();
   draw(trapsLayer, trapSeq, trapSearch, segments, segsLayer);
+  drawPoints(segsLayer, intersectionPoints);
 
   stage.add(background);
   stage.add(trapsLayer);
   stage.add(segsLayer);
+  stage.add(mouseLayer);
 });

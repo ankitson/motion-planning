@@ -59,6 +59,15 @@ Trapezoid.prototype.lineIntersection = function(line1) {
   return _.filter([p1,p2,p3,p4], function(elem) { return (elem !== null); } );
 }
 
+Trapezoid.prototype.segIntersection = function(seg1) {
+  var p1 = segSegIntersect(seg1,this.topEdge);
+  var p2 = segSegIntersect(seg1,this.bottomEdge);
+  var p3 = lineSegIntersect(this.leftEdge(),seg1);
+  var p4 = lineSegIntersect(this.rightEdge(),seg1);
+
+  return _.filter([p1,p2,p3,p4], function(elem) { return (elem !== null); } );
+}
+
 
 /*Trapezoid.prototype.toSegments = function() {
   var segments = [];
@@ -130,7 +139,7 @@ function locate(root, point) {
   }
 
   if (root.type === 'y') {
-    seg = root.data;
+    var seg = root.data;
     if (verticallyBelow(point,seg)) {
       return locate(root.left,point);
     } else {

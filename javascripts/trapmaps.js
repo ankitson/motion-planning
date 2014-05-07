@@ -98,8 +98,9 @@ function generateTrapMap(segments) {
                                  q, trap.rightP,
                                 [null,null,null,null], null);
 
-      trap1.setUpperLeft(null);
-      trap1.setLowerLeft(null);
+      trap1.setUpperLeft(trap.upperLeft());
+      trap1.setLowerLeft(trap.lowerLeft());
+      //trap1.setLowerLeft(null);
       trap1.setUpperRight(trap2);
       trap1.setLowerRight(trap3);
 
@@ -116,8 +117,24 @@ function generateTrapMap(segments) {
 
       trap4.setUpperLeft(trap2);
       trap4.setLowerLeft(trap3);
-      trap4.setUpperLeft(null);
-      trap4.setUpperRight(null);
+      trap4.setUpperRight(trap.upperRight());
+      trap4.setLowerRight(trap.lowerRight());
+
+      if (trap.upperLeft() != null) {
+        trap.upperLeft().setUpperRight(trap1);
+      }
+
+      if (trap.lowerLeft() != null) {
+        trap.lowerLeft().setLowerRight(trap1);
+      }
+
+      if (trap.upperRight() != null) {
+        trap.upperRight().setUpperLeft(trap4);
+      }
+
+      if (trap.lowerRight() != null) {
+        trap.lowerRight().setLowerLeft(trap4);
+      }
 
 
       var trap1Node = new Node(trap1,'leaf',null,null);
@@ -148,15 +165,44 @@ function generateTrapMap(segments) {
       var ext2 = new Line(1,0,q.x);
       var exts = [ext1,ext2];
 
+      var allIntersectionPoints = [];
       for (var j=0;j<intersectingTraps.length;j++) {
+        console.log(j);
+        var intersectionPoints = [];
         var trap = intersectingTraps[j];
-        var intersectionPoints = trap.lineIntersection(ext1).concat(trap.lineIntersection(ext2)).
-                                                             concat(trap.lineIntersection(ext3));
+
+        //intersection points
+        intersectionPoints = intersectionPoints.concat(trap.segIntersection(segment)); //with segments
+        console.log('with segments done');
+        console.log(intersectionPoints);
+        /*for (var k=0;k<intersectionPoints.length;k++) { //, vertical extensions of segment/trap intersections
+          console.log('k: ' + k);
+          var tsI = intersectionPoints[k];
+          console.log('tsI: '+ tsI.x + "," + tsI.y);
+          intersectionPoints = intersectionPoints.concat(trap.lineIntersection(new Line(1,0,tsI.y)));
+        }*/
+        console.log('vert exts');
+        if (locate(trapSearch.root,p).data === trap) { //, vertical extensions of p if it is in trap
+          intersectionPoints = intersectionPoints.concat(trap.lineIntersection(ext1));
+          console.log('trap/ext1 intersection; ');
+          console.log(trap.lineIntersection(ext1));
+        }
+        console.log('locate p');
+
+        if (locate(trapSearch.root,q).data === trap) { //and vertical extensions of q if it is in trap
+          console.log('located q: ');
+          console.log([trap.node,q,locate(trap.node,q)]);
+          intersectionPoints = intersectionPoints.concat(trap.lineIntersection(ext2));
+          console.log('trap/ext2 intersection; ');
+          console.log(trap.lineIntersection(ext2));
+        }
 
         console.log('intersection points; ');
         console.log(intersectionPoints);
         //console.log(trap.lineIntersection(ext1));
         console.log(trap);
+
+        allIntersectionPoints = allIntersectionPoints.concat(intersectionPoints);
 
 
 
@@ -165,7 +211,7 @@ function generateTrapMap(segments) {
     }
   }
 
-  return [trapSeq,trapSearch];
+  return [trapSeq,trapSearch, allIntersectionPoints];
 }
 
 
