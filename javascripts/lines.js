@@ -53,8 +53,8 @@ function lineIntersect(line1,line2) {
   var xc = (b2*c1 - b1*c2)/det;
   var yc = (a1*c2 - a2*c1)/det;
 
-  console.log('------line intersect-------');
-  console.log([line1,line2, xc, yc, det]);
+  //console.log('------line intersect-------');
+  //console.log([line1,line2, xc, yc, det]);
   return new Point(xc,yc);
 }
 
@@ -108,7 +108,7 @@ function verticallyAbove(point,segment) {
   return (point.y > Math.max(segment[0].y, segment[1].y));
 }
 
-//directs the segment to the left
+//directs the segment in left-right direction
 //returns <0 on the left of seg, 0 on seg, >0 right
 function segSide(point,segment) {
   var x1 = point.x;

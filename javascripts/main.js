@@ -55,7 +55,7 @@ function drawPoints(layer, points) {
 }
 
 function draw(trapLayer, trapSeq, trapSearch, segments, segLayer) {
-
+  var trapsToObjs = {};
   for (var i=0;i < segments.length; i++) {
     var segment = segments[i];
     var segmentObj = new Kinetic.Line({
@@ -103,12 +103,24 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer) {
     });
 
     trapLayer.add(trapObj);
+    trapObj.originalFill = trapObj.getFill();
+    trapObj.originalOpacity = trapObj.getOpacity;
+    trapObj.on('mouseover touchstart', function() {
+      this.fill('red');
+      this.opacity(1);
+      trapLayer.draw();
+    });
+    trapObj.on('mouseout touchend', function() {
+      this.opacity(this.originalOpacity);
+      this.fill(this.originalFill);
+      trapLayer.draw();
+    })
+    trapsToObjs[trap] = trapObj;
   }
   for (var i=0;i<ptObjs.length;i++) {
     trapLayer.add(ptObjs[i]);
   }
-
-
+  return trapsToObjs;
 }
 
 $(document).ready(function() {
@@ -116,8 +128,18 @@ $(document).ready(function() {
 
   var segment1 = [new Point(300,300), new Point(700,500)];
   var segment2 = [new Point(400,400), new Point(600,50)];
-  //var segment3 = [new Point(500,500), new Point(0,0)];
-  var segments = [segment1,segment2];//,segment2];//,segment3];
+  var segment3 = [new Point(0,0), new Point(380,600)];
+  var segment4 = [new Point(1,1), new Point(300,600)];
+  var segments = [];
+  segments = segments.concat([segment1]);
+  segments = segments.concat([segment2]);
+  //segments = segments.concat([segment3]);
+  //segments = segments.concat([segment4]);
+
+  var square = [[new Point(50,50), new Point(50,450)], [new Point(50,50), new Point(450,50)],
+                [new Point(50,450), new Point(450,450)], [new Point(450,50), new Point(450,450)]];
+
+  //segments = square;
 
   var trapMap = generateTrapMap(segments);
   var trapSeq = trapMap[0];
@@ -146,15 +168,7 @@ $(document).ready(function() {
 
   mouseLayer.add(mousePosObject);
 
-  $(stage.getContent()).on('mousemove', function (event) {
-    var mousePos = stage.getPointerPosition();
-    var mouseX = parseInt(mousePos.x);
-    var mouseY = parseInt(mousePos.y);
-    mousePosObject.x = mouseX;
-    mousePosObject.y = mouseY;
-    mousePosObject.setText(mouseX+","+mouseY);
-    mouseLayer.draw();
-  });
+
 
 
   var background = new Kinetic.Layer();
@@ -169,12 +183,30 @@ $(document).ready(function() {
 
   var trapsLayer = new Kinetic.Layer();
   var segsLayer = new Kinetic.Layer();
-  draw(trapsLayer, trapSeq, trapSearch, segments, segsLayer);
+  var trapsToObjs = draw(trapsLayer, trapSeq, trapSearch, segments, segsLayer);
   drawPoints(segsLayer, intersectionPoints);
+
+  $(stage.getContent()).on('mousemove', function (event) {
+    var mousePos = stage.getPointerPosition();
+    var mouseX = parseInt(mousePos.x);
+    var mouseY = parseInt(mousePos.y);
+    mousePosObject.x = mouseX;
+    mousePosObject.y = mouseY;
+    mousePosObject.setText(mouseX+","+mouseY);
+    mouseLayer.draw();
+
+//     var mousePoint = new Point(mouseX,mouseY);
+//     var mouseTrap = locate(trapSearch.root,mousePoint);
+//     trapsToObjs[mouseTrap].fill('black');
+
+//     trapsLayer.draw();
+  });
 
   stage.add(background);
   stage.add(trapsLayer);
   stage.add(segsLayer);
   stage.add(mouseLayer);
+
+  console.log(segSide(new Point(5,3), [new Point(1,1), new Point(5,5)]));
 
 });

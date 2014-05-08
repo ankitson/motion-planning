@@ -181,7 +181,7 @@ function locate(root, point) {
 
   if (root.type === 'y') {
     var seg = root.data;
-    if (verticallyBelow(point,seg)) {
+    if (segSide(point,seg) < 0) { // verticallyBelow(point,seg)) {
       return locate(root.left,point);
     } else {
       return locate(root.right,point);
@@ -222,6 +222,54 @@ function replaceNode(root,node1,node2) {
 
 }
 
+//not a general purpose function
+//for 2 traps, they must share top or bottom edge
+//for 3 traps, the first 2 must share left and right side, and share one of them with the third
 function makeTree(traps) {
+  if (traps.length === 1)
+    return new Node(traps[0],"leaf",null,null);
+  else if (traps.length === 2) {
+    var commonSegment = null;
+    var bottomTrap = null;
+    var topTrap = null;
+    if (traps[0].bottomEdge === traps[1].topEdge) {
+      commonSegment = traps[0].bottomEdge
+      bottomTrap = traps[1];
+      topTrap = traps[0];
+    } else if (traps[0].topEdge === traps[1].bottomEdge) {
+      commonSegment = traps[0].topEdge;
+      bottomTrap = traps[0];
+      topTrap = traps[1];
+    } else {
+      return null;
+    }
+    var topTrapNode = new Node(topTrap, "leaf", null, null);
+    var bottomTrapNode = new Node(bottomTrap, "leaf", null, null);
+    topTrap.node = topTrapNode;
+    bottomTrap.node = bottomTrapNode;
+    var segNode = new Node(commonSegment,'y', topTrapNode, bottomTrapNode);
+    return segNode;
+  }
+  else if (traps.length === 3) {
+    var node1 = makeTree(_.first(traps,2));
+    var node3 = new Node(traps[2], "leaf", null, null);
 
+    var xDiv = null;
+    var xNode = null;
+    if (!((traps[0].leftP.x === traps[1].leftP.x) && (traps[0].rightP.x === traps[1].rightP.x)))
+      return null;
+
+    if (traps[0].leftP.x === traps[2].rightP.x) {
+      xDiv = traps[0].leftP;
+      xNode = new Node(xDiv,'x',node3,node1);
+    }
+    else if (traps[0].rightP.x === traps[2].leftP.x) {
+      xDiv = traps[0].rightP;
+      xNode = new Node(xDiv,'x',node1,node3);
+    }
+    else
+      console.log('3 traps with wrong conditions to make tree');
+
+    return xNode;
+  }
 }
