@@ -35,6 +35,7 @@ function lineFromSegment(seg) {
 }
 
 //lines are specified as ax + by = c
+//returns null if parallel
 function lineIntersect(line1,line2) {
 
   var a1 = line1.a;
@@ -52,8 +53,8 @@ function lineIntersect(line1,line2) {
   var xc = (b2*c1 - b1*c2)/det;
   var yc = (a1*c2 - a2*c1)/det;
 
-  //console.log('------line intersect-------');
-  //console.log([line1,line2, xc, yc]);
+  console.log('------line intersect-------');
+  console.log([line1,line2, xc, yc, det]);
   return new Point(xc,yc);
 }
 
@@ -84,10 +85,6 @@ function lineSegIntersect(line1,seg2) {
 function segSegIntersect(seg1,seg2) {
   var line1 = lineFromSegment(seg1);
   var ints = lineSegIntersect(line1,seg2);
-  if (ints != null) {
-    console.log('ints: '+ints.x + ' ' + ints.y);
-    console.log([seg2, inRectangle(ints,seg1[0],seg1[1])]);
-  }
   if (ints != null && inRectangle(ints, seg1[0],seg1[1]))
     return ints;
   else
@@ -95,8 +92,6 @@ function segSegIntersect(seg1,seg2) {
 }
 
 function inRectangle(p,p1,p2) {
-  console.log('in rectangle');
-  console.log([p,p1,p2]);
   var maxx = Math.max(p1.x,p2.x);
   var minx = Math.min(p1.x,p2.x);
   var maxy = Math.max(p1.y,p2.y);

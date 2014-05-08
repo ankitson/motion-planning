@@ -116,7 +116,8 @@ $(document).ready(function() {
 
   var segment1 = [new Point(300,300), new Point(700,500)];
   var segment2 = [new Point(400,400), new Point(600,50)];
-  var segments = [segment1,segment2];
+  //var segment3 = [new Point(500,500), new Point(0,0)];
+  var segments = [segment1,segment2];//,segment2];//,segment3];
 
   var trapMap = generateTrapMap(segments);
   var trapSeq = trapMap[0];
@@ -175,4 +176,5 @@ $(document).ready(function() {
   stage.add(trapsLayer);
   stage.add(segsLayer);
   stage.add(mouseLayer);
+
 });

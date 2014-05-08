@@ -12,6 +12,7 @@ var line3 = new Line(6,8,11);
 //generate a trapezoidal map, and a structure supporting point location queries
 //input: segments
 //output: trap sequence and trap search tree
+//SEGMENTS MUST BE ORIENTED LEFT TO RIGHT (SORTED BY X)
 function generateTrapMap(segments) {
   var bbox = new Trapezoid( [new Point(0,0), new Point(800,0)],
                             [new Point(1,800), new Point(801,800)],
@@ -166,51 +167,121 @@ function generateTrapMap(segments) {
       var exts = [ext1,ext2];
 
       var allIntersectionPoints = [];
+
       for (var j=0;j<intersectingTraps.length;j++) {
+        var trap = intersectingTraps[j];
+        var segIntersections = trap.segIntersectionUnfiltered(segment);
+
+        var horzSegIntersections = _.first(segIntersections, 2);
+        var vertSegIntersections = _.rest(segIntersections,2);
+        horzSegIntersections = _.filter(horzSegIntersections, function(elem) { return (elem !== null);});
+        vertSegIntersections = _.filter(vertSegIntersections, function(elem) { return (elem !== null);});
+        horzSegIntersections = _.sortBy(horzSegIntersections, ['x','y']);
+        vertSegIntersections = _.sortBy(vertSegIntersections, ['x','y']);
+
+        if (j === 0) { //trap containing p
+          var vertExt = new Line(1,0,p.x);
+          var vertExtIntersections = trap.lineIntersection(vertExt);
+          vertExtIntersections = _.sortBy(vertSegIntersections, ['y']);
+
+          //the seg can intersect either a vertical side of trap or an oblique side
+          if (vertSegIntersections.length === 1) { //vert side
+
+            var trapA = new Trapezoid([trap.topEdge[0],vertExtIntersections[0]],
+                                    [trap.bottomEdge[0], vertExtIntersections[1]],
+                                     trap.leftP, p, [null,null,null,null],null);
+            var trapB = new Trapezoid([vertExtIntersections[0], trap.topEdge[1]],
+                                      [p, vertSegIntersections[0]],
+                                      p, trap.rightP, [null,null,null,null], null);
+            var trapC = new Trapezoid([p, vertSegIntersections[0]],
+                                      [vertExtIntersections[1], trap.bottomEdge[1]],
+                                      p, trap.rightP, [null,null,null,null], null);
+            trapSeq.push(trapA);
+            trapSeq.push(trapB);
+            trapSeq.push(trapC);
+          }
+        }
+
+      }
+      /*for (var j=0;j<intersectingTraps.length;j++) {
         console.log(j);
         var intersectionPoints = [];
         var trap = intersectingTraps[j];
 
         //intersection points
-        intersectionPoints = intersectionPoints.concat(trap.segIntersection(segment)); //with segments
-        console.log('with segments done');
-        console.log(intersectionPoints);
-        /*for (var k=0;k<intersectionPoints.length;k++) { //, vertical extensions of segment/trap intersections
-          console.log('k: ' + k);
-          var tsI = intersectionPoints[k];
-          console.log('tsI: '+ tsI.x + "," + tsI.y);
-          intersectionPoints = intersectionPoints.concat(trap.lineIntersection(new Line(1,0,tsI.y)));
-        }*/
+        var segIntersections = trap.segIntersection(segment);
+        console.log('seg intersections');
+        console.log(segIntersections);
+        intersectionPoints = intersectionPoints.concat(segIntersections); //with segments
+        for (var k=0;k<segIntersections.length;k++) { //, vertical extensions of segment/trap intersections
+          var tsI = segIntersections[k];
+          intersectionPoints = intersectionPoints.concat(trap.lineIntersection(new Line(1,0,tsI.x)));
+
+        }
         console.log('vert exts');
         if (locate(trapSearch.root,p).data === trap) { //, vertical extensions of p if it is in trap
           intersectionPoints = intersectionPoints.concat(trap.lineIntersection(ext1));
           console.log('trap/ext1 intersection; ');
           console.log(trap.lineIntersection(ext1));
         }
-        console.log('locate p');
 
         if (locate(trapSearch.root,q).data === trap) { //and vertical extensions of q if it is in trap
-          console.log('located q: ');
           console.log([trap.node,q,locate(trap.node,q)]);
           intersectionPoints = intersectionPoints.concat(trap.lineIntersection(ext2));
           console.log('trap/ext2 intersection; ');
           console.log(trap.lineIntersection(ext2));
         }
 
+        intersectionPoints = intersectionPoints.uniqueObjects(["x","y"]);
+
         console.log('intersection points; ');
         console.log(intersectionPoints);
-        //console.log(trap.lineIntersection(ext1));
-        console.log(trap);
+
+        //create new traps formed by intersection points
+        //each type of intersection generates a pair of intersections that will be joined by a vertical line.
+        var newTrapNodes = [];
+        intersectionPoints = _.sortBy(intersectionPoints, function(p) { return p.x});
+        var leftP = trap.leftP;
+        var rightP = null;
+        for (var k=0;k<intersectionPoints.length-1;k = k+2) {
+          if (j === 0 && k === 0) //first point of first trap
+            rightP = p;
+          else
+            rightP = intersectionPoints[k];
+
+          if (j === intersectingTraps.length-1 && k === intersectionPoints.length - 2) //last point of last trap
+            leftP = q;
+
+          console.log('current trap');
+          console.log([leftP,rightP,trap]);
+          var topEdge = [trap.topEdge[0],lineSegIntersect(new Line(1,0,rightP.x),trap.topEdge)];
+          var bottomEdge = [trap.bottomEdge[0],lineSegIntersect(new Line(1,0,rightP.x),trap.bottomEdge)];
+
+          var newTrap = new Trapezoid(topEdge,bottomEdge,leftP,rightP,[null,null,null,null],null);
+          var newTrapNode = new Node(newTrap,"leaf",null,null);
+
+          leftP = rightP;
+          newTrapNodes.push(newTrapNode);
+          console.log('newTrap:');
+          console.log([leftP,rightP,topEdge,bottomEdge]);
+          trapSeq.push(newTrap);
+
+        }
+        //trapSearch = new SearchTree(replaceNode(trapSearch.root,trap.node,makeTree(newTrapNodes)));
+
+
+        //since we insert intersection points in order, we can loop through with consecutive points as pairs
+
+
+
 
         allIntersectionPoints = allIntersectionPoints.concat(intersectionPoints);
-
-
-
-
-      }
+      }*/
     }
   }
 
+  console.log('returning trap seq: ');
+  console.log(trapSeq);
   return [trapSeq,trapSearch, allIntersectionPoints];
 }
 

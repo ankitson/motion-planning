@@ -4,6 +4,36 @@ function shuffle(o){
   return o;
 };
 
+Array.prototype.uniqueObjects = function (props) {
+    function compare(a, b) {
+      var prop;
+        if (props) {
+            for (var j = 0; j < props.length; j++) {
+              prop = props[j];
+                if (a[prop] != b[prop]) {
+                    return false;
+                }
+            }
+        } else {
+            for (prop in a) {
+                if (a[prop] != b[prop]) {
+                    return false;
+                }
+            }
+
+        }
+        return true;
+    }
+    return this.filter(function (item, index, list) {
+        for (var i = 0; i < index; i++) {
+            if (compare(item, list[i])) {
+                return false;
+            }
+        }
+        return true;
+    });
+};
+
 //point
 function Point(x,y) {
   this.x = x;
@@ -51,10 +81,12 @@ Trapezoid.prototype.toPoints = function() {
   }
 
 Trapezoid.prototype.lineIntersection = function(line1) {
+  console.log('trap.lineintesrection');
   var p1 = lineSegIntersect(line1,this.topEdge);
   var p2 = lineSegIntersect(line1,this.bottomEdge);
   var p3 = lineIntersect(line1,this.leftEdge());
   var p4 = lineIntersect(line1,this.rightEdge());
+  console.log([line1,p1,p2,p3,p4]);
 
   return _.filter([p1,p2,p3,p4], function(elem) { return (elem !== null); } );
 }
@@ -66,6 +98,15 @@ Trapezoid.prototype.segIntersection = function(seg1) {
   var p4 = lineSegIntersect(this.rightEdge(),seg1);
 
   return _.filter([p1,p2,p3,p4], function(elem) { return (elem !== null); } );
+}
+
+Trapezoid.prototype.segIntersectionUnfiltered = function(seg1) {
+  var p1 = segSegIntersect(seg1,this.topEdge);
+  var p2 = segSegIntersect(seg1,this.bottomEdge);
+  var p3 = lineSegIntersect(this.leftEdge(),seg1);
+  var p4 = lineSegIntersect(this.rightEdge(),seg1);
+
+  return [p1,p2,p3,p4];
 }
 
 
@@ -178,5 +219,9 @@ function replaceNode(root,node1,node2) {
     console.log('the end is neigh');
 
   return root;
+
+}
+
+function makeTree(traps) {
 
 }
