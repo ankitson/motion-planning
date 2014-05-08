@@ -55,10 +55,27 @@ Trapezoid.prototype.upperRight = function() { return this.neighbours[1]; }
 Trapezoid.prototype.lowerLeft = function() { return this.neighbours[2]; }
 Trapezoid.prototype.lowerRight = function() { return this.neighbours[3]; }
 
-Trapezoid.prototype.setUpperLeft = function(trap) { this.neighbours[0] = trap; }
-Trapezoid.prototype.setUpperRight = function(trap) { this.neighbours[1] = trap; }
-Trapezoid.prototype.setLowerLeft = function(trap) { this.neighbours[2] = trap; }
-Trapezoid.prototype.setLowerRight = function(trap) { this.neighbours[3] = trap; }
+Trapezoid.prototype.setUpperLeft = function(trap) {
+  this.neighbours[0] = trap;
+  if (trap != null && trap.upperRight === null)
+    trap.setUpperRight(this);
+}
+Trapezoid.prototype.setUpperRight = function(trap) {
+  this.neighbours[1] = trap;
+  if (trap != null && trap.upperLeft === null)
+    trap.setUpperLeft(this);
+}
+Trapezoid.prototype.setLowerLeft = function(trap) {
+  this.neighbours[2] = trap;
+  if (trap != null && trap.lowerRight === null)
+    trap.setLowerRight(this);
+}
+
+Trapezoid.prototype.setLowerRight = function(trap) {
+  this.neighbours[3] = trap;
+  if (trap != null && trap.lowerLeft === null)
+    trap.setLowerLeft(this);
+}
 
 Trapezoid.prototype.leftEdge = function() {
   return new Line(1,0,this.leftP.x);
@@ -162,7 +179,6 @@ function SearchTree(root) {
 }
 
 function locate(root, point) {
-
   if (root === null) {
     return null;
   }
@@ -232,11 +248,15 @@ function makeTree(traps) {
     var commonSegment = null;
     var bottomTrap = null;
     var topTrap = null;
-    if (traps[0].bottomEdge === traps[1].topEdge) {
+    console.log('LENGTH 2.....');
+    console.log(traps);
+    if (traps[0].bottomEdge[0] === traps[1].topEdge[0] && traps[0].bottomEdge[1] === traps[1].topEdge[1]) {
+      console.log('0 bot = 1 top');
       commonSegment = traps[0].bottomEdge
       bottomTrap = traps[1];
       topTrap = traps[0];
-    } else if (traps[0].topEdge === traps[1].bottomEdge) {
+    } else if (traps[0].topEdge[0] === traps[1].bottomEdge[0] && traps[0].topEdge[1] === traps[1].bottomEdge[1]) {
+      console.log('1 bot = 0 top');
       commonSegment = traps[0].topEdge;
       bottomTrap = traps[0];
       topTrap = traps[1];
@@ -252,7 +272,10 @@ function makeTree(traps) {
   }
   else if (traps.length === 3) {
     var node1 = makeTree(_.first(traps,2));
+
     var node3 = new Node(traps[2], "leaf", null, null);
+        console.log('LENGTH 3...')
+        console.log([traps,node1,node3]);
 
     var xDiv = null;
     var xNode = null;
