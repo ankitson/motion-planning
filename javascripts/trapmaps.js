@@ -319,7 +319,7 @@ function generateTrapMap(segments) {
       var trap3Node = new Node(trap3,'leaf',null,null);
       var trap4Node = new Node(trap4,'leaf',null,null);
 
-      /*trap1.node = trap1Node;
+      trap1.node = trap1Node;
       trap2.node = trap2Node;
       trap3.node = trap3Node;
       trap4.node = trap4Node;
@@ -333,7 +333,7 @@ function generateTrapMap(segments) {
 
       console.log('the ynode segment');
       console.log(segment);
-			console.log([trap2Node,trap3Node]);*/
+			console.log([trap2Node,trap3Node]);
 
       var yNode = new Node(segment,'y', trap2Node, trap3Node);
       //yNode.stored = segment;
@@ -345,7 +345,14 @@ function generateTrapMap(segments) {
       var xNode1 = new Node(p, 'x', trap1Node, xNode2);
       console.log('xnode1 before replace');
       console.log(xNode1)
-      trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, xNode1));
+
+			var trapNode = trap.node
+			console.log('parent: ')
+			console.log([trapNode, findParent(trapSearch.root, trapNode)]);
+
+			trapSearch = new SearchTree(xNode1);
+      //trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, xNode1));
+
       console.log('1 intersecting trap first case');
       console.log([trapSeq,trapSearch, xNode1, trap1Node]);
 
@@ -413,6 +420,9 @@ function generateTrapMap(segments) {
             var ABCTree = makeTree([trapB,trapC,trapA]);
             console.log("ABC Tree");
             console.log(ABCTree);
+
+
+
             trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, makeTree([trapB,trapC, trapA])));
           } else if (horzSegIntersections.length === 1) {
             console.log('1 horz seg intersected');

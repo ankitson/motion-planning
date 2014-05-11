@@ -265,6 +265,9 @@ function findParent(root, node) {
   if (root === null)
     return null;
 
+	if (root === node)
+		return null;
+
   console.log('findparnet');
   console.log([root,node]);
   if (root.left === node || root.right === node) {

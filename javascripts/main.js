@@ -80,17 +80,14 @@ function highlightTrap(trap, layer) {
   layer.draw();
 }
 
-function drawTree(node, layer, origin) {
-  console.log('drawTree: ');
-  console.log([node,layer,origin.x,origin.y]);
-
-  var xDist = 50;
-  var yDist = 50;
+function drawTree(node, layer, origin, depth) {
+  var xDist = 100 * (6 - depth)/2;
+  var yDist = 50 * (6 - depth)/2;
   if (node === null)
     return layer;
 
-  var leftLayer = drawTree(node.left, layer, new Point(origin.x - xDist, origin.y + yDist));
-  var leftRightLayer = drawTree(node.right, leftLayer, new Point(origin.x + xDist, origin.y + yDist));
+  var leftLayer = drawTree(node.left, layer, new Point(origin.x - xDist, origin.y + yDist), depth+1);
+  var leftRightLayer = drawTree(node.right, leftLayer, new Point(origin.x + xDist, origin.y + yDist), depth+1);
 
   var edge1 = new Kinetic.Line({
     points: [origin.x,origin.y,origin.x - xDist, origin.y + yDist],
@@ -115,7 +112,7 @@ function drawTree(node, layer, origin) {
 
   var label = '';
   if (node.type === 'leaf') {
-    nodeObj.corrTrap = node.data;
+    nodeObj.corrTrap = node.stored;
     nodeObj.on('mouseover', function() {
       highlightTrap(nodeObj.corrTrap, layer);
     });
@@ -123,14 +120,14 @@ function drawTree(node, layer, origin) {
     label = 'leaf';
   }
   if (node.type === 'y') {
-    var x1 = Math.round(node.data[0].x);
-    var x2 = Math.round(node.data[1].x);
-    var y1 = Math.round(node.data[0].y);
-    var y2 = Math.round(node.data[1].y);
-    label = "(" + x1 + "," + y1 + ") -> (" + x2 + "," + y2 + ")";
+    var x1 = Math.round(node.stored[0].x);
+    var x2 = Math.round(node.stored[1].x);
+    var y1 = Math.round(node.stored[0].y);
+    var y2 = Math.round(node.stored[1].y);
+    label = "(" + x1 + "," + y1 + ") \n (" + x2 + "," + y2 + ")";
   }
   if (node.type === 'x') {
-    label = Math.round(node.data.x).toString();
+    label = Math.round(node.stored.x).toString();
   }
 
   var nodeLabel = new Kinetic.Text({
@@ -139,7 +136,8 @@ function drawTree(node, layer, origin) {
     text: label,
     fontSize: 15,
     fontFamily: 'Calibri',
-    fill: 'black'
+    fill: 'black',
+		align: 'center'
   });
 
   leftRightLayer.add(nodeObj);
@@ -151,6 +149,47 @@ function drawTree(node, layer, origin) {
     leftRightLayer.add(edge2);
 
   return leftRightLayer;
+}
+
+function drawTree2(node, graph, id) {
+	if (node === null)
+		return [graph,id];
+
+	var leftTree = drawTree2(node.left,graph, id+1);
+	var leftGraph = leftTree[0];
+	var leftNodeID = leftTree[1];
+
+	var leftRightTree = drawTree2(node.right, graph, id+1000);
+	var lrGraph = leftRightTree[0];
+	var lrNodeID = leftRightTree[1];
+
+	var label = '';
+  if (node.type === 'leaf') {
+    /*nodeObj.corrTrap = node.stored;
+    nodeObj.on('mouseover', function() {
+      highlightTrap(nodeObj.corrTrap, layer);
+    });*/
+
+    label = 'leaf';
+  }
+  if (node.type === 'y') {
+    var x1 = Math.round(node.stored[0].x);
+    var x2 = Math.round(node.stored[1].x);
+    var y1 = Math.round(node.stored[0].y);
+    var y2 = Math.round(node.stored[1].y);
+    label = "(" + x1 + "," + y1 + ") \n (" + x2 + "," + y2 + ")";
+  }
+  if (node.type === 'x') {
+    label = Math.round(node.stored.x).toString();
+  }
+
+	console.log([node,graph,id,leftNodeID,lrNodeID]);
+	graph.addNode(id.toString(), { label: label, fill: "#fff"});
+	var color = getRandomColor();
+	graph.addEdge(id.toString(), leftNodeID.toString(), { stroke: '#333', fill: color});
+	graph.addEdge(id.toString(), lrNodeID.toString(), {stroke: color, fill: color});
+
+	return [graph,id];
 }
 
 function draw(trapLayer, trapSeq, trapSearch, segments, segLayer, intersectingTraps) {
@@ -244,10 +283,11 @@ $(document).ready(function() {
   var segment6 = [new Point(380,390), new Point(407,369)];
   var segments = [];
   segments = segments.concat([segment1]);
-  segments = segments.concat([segment2]);
+  //segments = segments.concat([segment2]);
   //segments = segments.concat([segment3]);
   //segments = segments.concat([segment4]);
-  //segments = segments.concat([segment5]);
+  segments = segments.concat([segment5]);
+	segments = segments.concat([segment2]);
   //segments = segments.concat([segment6]);
 
   var square = [[new Point(50,50), new Point(50,450)], [new Point(50,50), new Point(450,50)],
@@ -267,7 +307,7 @@ $(document).ready(function() {
   var stage = new Kinetic.Stage({
     container: 'container',
     width: 2000,
-    height: 800
+    height: 2000
   });
 
   var mouseLayer = new Kinetic.Layer();
@@ -305,7 +345,7 @@ $(document).ready(function() {
   $('#historySlider').val(trapHistory.length);
   var trapLayer = new Kinetic.Layer();
   var segLayer = new Kinetic.Layer();
-  var treeLayer = drawTree(trapSearch.root,new Kinetic.Layer(), new Point(1000,200));
+  var treeLayer = drawTree(trapSearch.root,new Kinetic.Layer(), new Point(1000,800), 0);
   var trapsToObjs = draw(trapLayer,trapHistory[trapHistory.length-1][0], trapHistory[trapHistory.length-1][1], segments, segLayer);
   stage.add(trapLayer);
   stage.add(segLayer);
@@ -341,11 +381,22 @@ $(document).ready(function() {
     mousePosObject.setText(mouseX+","+mouseY);
     mouseLayer.draw();
 
+
+
     var mousePoint = new Point(mouseX,mouseY);
-    var mouseTrap = locate(trapHistory[index][1].root,mousePoint).data;
+    var mouseTrap = locate(trapHistory[index][1].root,mousePoint).stored;
+
     highlightTrap(mouseTrap,trapLayer);
 
   });
+
+	var treeGraph = drawTree2(trapSearch.root, new Graph(), 1)[0];
+	console.log('tree graph');
+	console.log(treeGraph);
+	//var layouter = new Graph.Layout.Spring(treeGraph);
+	//layouter.layout();
+	//var renderer = new Graph.Renderer.Raphael('tree', treeGraph, 400,400);
+	//renderer.draw();
 
   console.log('NODE TEST');
   var node1 = new Node(null, "leaf", null, null);
