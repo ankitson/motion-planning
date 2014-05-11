@@ -4,7 +4,7 @@ function shuffle(o){
   return o;
 };
 
-Array.prototype.uniqueObjects = function (props) {
+/*Array.prototype.uniqueObjects = function (props) {
     function compare(a, b) {
       var prop;
         if (props) {
@@ -32,7 +32,7 @@ Array.prototype.uniqueObjects = function (props) {
         }
         return true;
     });
-};
+};*/
 
 //point
 function Point(x,y) {
@@ -40,14 +40,41 @@ function Point(x,y) {
   this.y = y;
 }
 
+function ParametricSegment(left, right) {
+  if (left.x > right.x) {
+    var temp = left;
+    left = right;
+    right = temp;
+  }
+
+  this.p = left;
+  this.q = right;
+}
+
+//evaluate the segment at 0 <= t <= 1
+//return vector sum of tp * (1-t) *q
+ParametricSegment.prototype.evaluate = function(t) {
+  var x = (1-t)*this.p.x + t * this.q.x;
+  var y = (1-t)*this.p.y + t * this.q.y;
+  return new Point(x,y);
+}
+
 function Trapezoid(topEdge,bottomEdge,leftP,rightP, neighbours, node) {
   this.topEdge = topEdge;
   this.bottomEdge = bottomEdge;
   this.leftP = leftP;
   this.rightP = rightP;
+
+  if (neighbours === undefined)
+    neighbours = [null,null,null,null];
+  if (node === undefined)
+    node = null;
+
   //if there is only 1 l/r neighbor, then upper and lower l/r both point to it
   this.neighbours = neighbours; //0-upper left, 1-upper right,2-lower left,3-lower-right
   this.node = node;
+
+
 }
 
 Trapezoid.prototype.upperLeft = function() { return this.neighbours[0]; }
@@ -77,6 +104,13 @@ Trapezoid.prototype.setLowerRight = function(trap) {
     trap.setLowerLeft(this);
 }
 
+Trapezoid.prototype.setNeighbours = function(neighbours) {
+  this.setUpperLeft(neighbours[0]);
+  this.setUpperRight(neighbours[1]);
+  this.setLowerLeft(neighbours[2]);
+  this.setLowerRight(neighbours[3]);
+}
+
 Trapezoid.prototype.leftEdge = function() {
   return new Line(1,0,this.leftP.x);
 }
@@ -96,6 +130,19 @@ Trapezoid.prototype.toPoints = function() {
 
     return [topLeft, topRight, bottomLeft, bottomRight];
   }
+
+Trapezoid.prototype.trapEquals = function(trap2) {
+  var thisPoints = this.toPoints();
+  var otherPoints = trap2.toPoints();
+
+  for (i=0;i<4;i++) {
+    var p1 = thisPoints[i];
+    var p2 = otherPoints[i];
+    if (p1.x !== p2.x || p1.y !== p2.y)
+      return false;
+  }
+  return true;
+}
 
 Trapezoid.prototype.lineIntersection = function(line1) {
   console.log('trap.lineintesrection');
@@ -167,8 +214,13 @@ Trapezoid.prototype.trapEquals = function(trap2) {
   return true;
 }*/
 
-function Node(data,type,left,right) {
-  this.data =  data;
+function Node(stored,type,left,right) {
+	if (type === 'y') {
+  	this.seg1 = stored[0];
+  	this.seg2 = stored[1];
+	}
+
+  this.stored = stored;
   this.type =  type; //x node (point), y node (segment) or leaf (trap)
   this.left =  left;
   this.right = right;
@@ -178,7 +230,10 @@ function SearchTree(root) {
   this.root = root;
 }
 
+
 function locate(root, point) {
+  //console.log('locating:')
+  //console.log([root,point]);
   if (root === null) {
     return null;
   }
@@ -188,7 +243,7 @@ function locate(root, point) {
   }
 
   if (root.type === 'x') {
-    if (point.x < root.data.x) {
+    if (point.x < root.stored .x) {
       return locate(root.left, point);
     } else {
       return locate(root.right, point)
@@ -196,7 +251,7 @@ function locate(root, point) {
   }
 
   if (root.type === 'y') {
-    var seg = root.data;
+    var seg = root.stored ;
     if (segSide(point,seg) < 0) { // verticallyBelow(point,seg)) {
       return locate(root.left,point);
     } else {
@@ -210,27 +265,42 @@ function findParent(root, node) {
   if (root === null)
     return null;
 
-  if (root.left === node || root.right === node)
+  console.log('findparnet');
+  console.log([root,node]);
+  if (root.left === node || root.right === node) {
+    console.log('returning this node');
     return root;
+  }
+
 
   var parent = findParent(root.left, node);
   if (parent !== null)
     return parent;
   parent = findParent(root.right,node);
 
+  console.log('returning');
+  console.log(parent);
   return parent;
 }
 
 //replace subtree rooted at node1 by subtree at node2
 function replaceNode(root,node1,node2) {
+  console.log('replace node');
+  console.log([root,node1,node2]);
   var node1Parent = findParent(root,node1);
+  console.log('parent:');
+  console.log(node1Parent);
   if (node1Parent === null) //node1 is root
     return node2;
 
-  if (node1Parent.left === node1)
+  if (node1Parent.left === node1) {
     node1Parent.left = node2;
-  else if (node1Parent.right === node1)
+    console.log('left replaced');
+  }
+  else if (node1Parent.right === node1) {
     node1Parent.right = node2;
+    console.log('right replaced');
+  }
   else
     console.log('the end is neigh');
 

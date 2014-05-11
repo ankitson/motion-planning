@@ -1,3 +1,5 @@
+//Line is stored as ax + by = c (not ax + by + c = 0)
+//the formulas still work with two lines as the two -1s cancel
 function Line(a,b,c) {
   this.a = a;
   this.b = b;

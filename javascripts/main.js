@@ -54,6 +54,105 @@ function drawPoints(layer, points) {
   }
 }
 
+
+function highlightTrap(trap, layer) {
+  var pts = trap.toPoints();
+  sortCW(pts);
+
+  var ptsFormatted = [];
+  for (var j=0;j<pts.length;j++) {
+    ptsFormatted.push(pts[j].x);
+    ptsFormatted.push(pts[j].y);
+  }
+
+  if (window.highlightedTrapObj !== null)
+    window.highlightedTrapObj.destroy();
+    window.highlightedTrapObj = new Kinetic.Line({
+      points: ptsFormatted,
+      fill: 'red',
+      stroke: 'black',
+      closed: true,
+      opacity: 1
+    });
+
+  layer.clear();
+  layer.add(window.highlightedTrapObj);
+  layer.draw();
+}
+
+function drawTree(node, layer, origin) {
+  console.log('drawTree: ');
+  console.log([node,layer,origin.x,origin.y]);
+
+  var xDist = 50;
+  var yDist = 50;
+  if (node === null)
+    return layer;
+
+  var leftLayer = drawTree(node.left, layer, new Point(origin.x - xDist, origin.y + yDist));
+  var leftRightLayer = drawTree(node.right, leftLayer, new Point(origin.x + xDist, origin.y + yDist));
+
+  var edge1 = new Kinetic.Line({
+    points: [origin.x,origin.y,origin.x - xDist, origin.y + yDist],
+    stroke: 'black',
+    strokeWidth: 1
+  });
+
+  var edge2 = new Kinetic.Line({
+    points: [origin.x,origin.y,origin.x + xDist, origin.y + yDist],
+    stroke: 'black',
+    strokeWidth: 1
+  });
+
+  var nodeObj = new Kinetic.Circle({
+    x: origin.x,
+    y: origin.y,
+    radius: 10,
+    fill: 'red',
+    opacity: 0.5
+  });
+
+
+  var label = '';
+  if (node.type === 'leaf') {
+    nodeObj.corrTrap = node.data;
+    nodeObj.on('mouseover', function() {
+      highlightTrap(nodeObj.corrTrap, layer);
+    });
+
+    label = 'leaf';
+  }
+  if (node.type === 'y') {
+    var x1 = Math.round(node.data[0].x);
+    var x2 = Math.round(node.data[1].x);
+    var y1 = Math.round(node.data[0].y);
+    var y2 = Math.round(node.data[1].y);
+    label = "(" + x1 + "," + y1 + ") -> (" + x2 + "," + y2 + ")";
+  }
+  if (node.type === 'x') {
+    label = Math.round(node.data.x).toString();
+  }
+
+  var nodeLabel = new Kinetic.Text({
+    x: nodeObj.getX(),
+    y: nodeObj.getY(),
+    text: label,
+    fontSize: 15,
+    fontFamily: 'Calibri',
+    fill: 'black'
+  });
+
+  leftRightLayer.add(nodeObj);
+  leftRightLayer.add(nodeLabel);
+
+  if (node.left !== null)
+    leftRightLayer.add(edge1);
+  if (node.right !== null)
+    leftRightLayer.add(edge2);
+
+  return leftRightLayer;
+}
+
 function draw(trapLayer, trapSeq, trapSearch, segments, segLayer, intersectingTraps) {
   var trapsToObjs = {}
   for (var i=0;i < segments.length; i++) {
@@ -133,6 +232,7 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer, intersectingTr
   return trapsToObjs;
 }
 
+
 $(document).ready(function() {
   console.log('This would be the main JS file.');
 
@@ -166,7 +266,7 @@ $(document).ready(function() {
 
   var stage = new Kinetic.Stage({
     container: 'container',
-    width: 800,
+    width: 2000,
     height: 800
   });
 
@@ -193,28 +293,11 @@ $(document).ready(function() {
   });
   background.add(boundingBox);
 
-  var trapsLayer = new Kinetic.Layer();
-  var segsLayer = new Kinetic.Layer();
-  //draw(trapsLayer, trapSeq, trapSearch, segments, segsLayer);
-  //drawPoints(segsLayer, intersectionPoints);
-
-
   stage.add(background);
-  //stage.add(trapsLayer);
-  //stage.add(segsLayer);
   stage.add(mouseLayer);
 
   console.log('history');
   console.log(trapHistory);
-
-  /*$('#historySlider').slider({
-    value: 1,
-    min: 1,
-    max: trapSeqHistory.length,
-    step: 1,
-    slide: function(event,ui) {
-    }
-  })*/
 
   $('#historySlider').attr('min', 1);
   $('#historySlider').attr('max', trapHistory.length);
@@ -222,9 +305,11 @@ $(document).ready(function() {
   $('#historySlider').val(trapHistory.length);
   var trapLayer = new Kinetic.Layer();
   var segLayer = new Kinetic.Layer();
+  var treeLayer = drawTree(trapSearch.root,new Kinetic.Layer(), new Point(1000,200));
   var trapsToObjs = draw(trapLayer,trapHistory[trapHistory.length-1][0], trapHistory[trapHistory.length-1][1], segments, segLayer);
   stage.add(trapLayer);
   stage.add(segLayer);
+  stage.add(treeLayer);
 
   var index = trapHistory.length - 1;
   $('#historySlider').change(function() {
@@ -237,10 +322,16 @@ $(document).ready(function() {
     trapsToObjs = draw(trapLayer,trapHistory[index][0], trapHistory[index][1], _.take(segments,index+1), segLayer, trapHistory[index][2]);
     stage.add(trapLayer);
     stage.add(segLayer);
+
+    treeLayer.remove();
+    treeLayer = drawTree(trapHistory[index][1], treeLayer, new Point(1000,200));
+    stage.add(treeLayer);
   });
 
 
-  var highlightedTrapObj = null;
+  window.highlightedTrapObj = null;
+
+
   $(stage.getContent()).on('mousemove', function (event) {
     var mousePos = stage.getPointerPosition();
     var mouseX = parseInt(mousePos.x);
@@ -252,65 +343,32 @@ $(document).ready(function() {
 
     var mousePoint = new Point(mouseX,mouseY);
     var mouseTrap = locate(trapHistory[index][1].root,mousePoint).data;
-    var pts = mouseTrap.toPoints();
-    sortCW(pts);
+    highlightTrap(mouseTrap,trapLayer);
 
-    var ptsFormatted = [];
-    for (var j=0;j<pts.length;j++) {
-      ptsFormatted.push(pts[j].x);
-      ptsFormatted.push(pts[j].y);
-    }
-    if (highlightedTrapObj !== null)
-      highlightedTrapObj.destroy();
-    highlightedTrapObj = new Kinetic.Line({
-      points: ptsFormatted,
-      fill: 'red',
-      stroke: 'black',
-      closed: true,
-      opacity: 1
-    });
-
-    trapLayer.add(highlightedTrapObj);
-    trapLayer.draw();
-    //window.setTimeout(function() { newTrapObj.destroy(); trapLayer.draw();}, 500);
   });
-  $('#container').on('mouseout', function (event) {
-                             if (highlightedTrapObj !== null) { highlightedTrapObj.destroy(); highlightedTrapObj = null;} } );
 
+  console.log('NODE TEST');
+  var node1 = new Node(null, "leaf", null, null);
+      console.log('node1');
+      console.log(node1);
+      var yNode = new Node([new Point(0,0), new Point(1,1)], 'y', null, null);
+      console.log('trap 1 node');
+      console.log(node1);
+      var xNode2 = new Node(new Point(2,2),'x', yNode, null);
+            console.log('trap 1 node');
+      console.log(node1);
+      var xNode1 = new Node(new Point(3,3), 'x', node1, xNode2);
+      console.log('trap 1 node');
+      console.log(node1);
+      console.log('xnode1 before replace');
+  console.log(xNode1);
 
-
-
-  /*var trapLayer = new Kinetic.Layer();
-  var segLayer = new Kinetic.Layer();
-  var currentHistoryIndex = trapHistory.length-1;
-  draw(trapLayer, trapHistory[currentHistoryIndex][0], trapHistory[currentHistoryIndex][1], _.take(segments,currentHistoryIndex+1),
-        segLayer, trapHistory[currentHistoryIndex][2]);
-  stage.add(trapLayer);
-  stage.add(segLayer);
-
-  $('#container').bind('mousewheel', function(e) {
-     var e = window.event || e; // old IE support
-	   var delta = e.wheelDelta/1000;
-     if (delta > 0 && currentHistoryIndex < trapHistory.length - 1) {
-       trapLayer.remove();
-       segLayer.remove();
-       currentHistoryIndex++;
-       draw(trapLayer, trapHistory[currentHistoryIndex][0], trapHistory[currentHistoryIndex][1], _.take(segments,currentHistoryIndex+1),
-            segLayer, trapHistory[currentHistoryIndex][2]);
-
-       stage.add(trapLayer);
-       stage.add(segLayer);
-     } else if (delta < 0 && currentHistoryIndex > 0) {
-       trapLayer.remove();
-       segLayer.remove();
-       currentHistoryIndex--;
-       draw(trapLayer, trapHistory[currentHistoryIndex][0], trapHistory[currentHistoryIndex][1], _.take(segments,currentHistoryIndex+1),
-            segLayer, trapHistory[currentHistoryIndex][2]);
-       stage.add(trapLayer);
-       stage.add(segLayer);
-     }
-    });*/
-
-
+  var seg = [new Point(0,0), new Point(1,1)];
+  var leafNode = new Node(trapSeq[0], 'leaf', null, null);
+  var yNodeTest = new Node(seg, 'y', leafNode, null);
+  console.log(yNodeTest);
 
 });
+
+
+

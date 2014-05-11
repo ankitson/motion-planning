@@ -9,7 +9,16 @@ var line2 = new Line(3,2,1);
 var line3 = new Line(6,8,11);
 //console.log(lineSegIntersect(line3,seg1));
 
-function generateTrapMap2(segments) {
+function copyTrapArr(array) {
+  var arrayCopy = [];
+  for (var j=0;j<array.length;j++) {
+    var trap = array[j];
+    var copy = new Trapezoid(trap.topEdge,trap.bottomEdge,trap.leftP,trap.rightP, trap.neighbours, trap.node);
+    arrayCopy.push(copy);
+  }
+  return arrayCopy;
+}
+/*function generateTrapMap2(segments) {
   var bbox = new Trapezoid( [new Point(0,0), new Point(800,0)],
                             [new Point(1,800), new Point(801,800)],
                              new Point(0,0),
@@ -24,6 +33,8 @@ function generateTrapMap2(segments) {
   var trapHistory = []; //[[trapSeq,trapSearch]];
   for (var i=0;i<segments.length;i++) {
     var seg = segments[i];
+    var p = seg[0];
+    var q = seg[1];
     var intersectingTraps = followSegment(trapSeq, trapSearch, seg);
 
     //remove intersecting traps from seq
@@ -35,12 +46,133 @@ function generateTrapMap2(segments) {
       }
     }
 
-    if (intersectingTraps.length === 1) {
-      var trapA = new Trapezoid()
+    trapHistory.push([copyTrapArr(trapSeq), trapSearch, copyTrapArr(intersectingTraps)]);
 
+    if (intersectingTraps.length === 1) {
+      var trap = intersectingTraps[0];
+      var trapA = new Trapezoid(trap.topEdge, trap.bottomEdge, trap.leftP, p); //1
+      var trapB = new Trapezoid(trap.topEdge, trap.bottomEdge, q, trap.rightP); //4
+      var trapC = new Trapezoid(trap.topEdge, seg, p, q); //2
+      var trapD = new Trapezoid(seg, trap.bottomEdge, p, q); //3
+
+      trapA.setUpperLeft(trap.upperLeft());
+      trapA.setUpperRight(trapC);
+      trapA.setLowerLeft(trap.lowerLeft());
+      trapA.setLowerRight(trapD);
+
+      trapB.setUpperLeft(trapC);
+      trapB.setUpperRight(trap.upperRight());
+      trapB.setLowerLeft(trapD);
+      trapB.setLowerRight(trap.lowerRight());
+
+      trapC.setUpperLeft(trapA);
+      trapC.setUpperRight(trapB);
+      trapC.setLowerLeft(trapA);
+      trapC.setLowerRight(trapB);
+
+      trapD.setUpperLeft(trapA);
+      trapD.setUpperRight(trapB);
+      trapD.setLowerLeft(trapA);
+      trapD.setLowerRight(trapB);
+
+      var trapANode = new Node(trapA,'leaf',null,null);
+      var trapBNode = new Node(trapB,'leaf',null,null);
+      var trapCNode = new Node(trapC,'leaf',null,null);
+      var trapDNode = new Node(trapD,'leaf',null,null);
+
+      trapA.node = trapANode;
+      trapB.node = trapBNode;
+      trapC.node = trapCNode;
+      trapD.node = trapDNode;
+
+      trapSeq.push(trapA);
+      trapSeq.push(trapB);
+      trapSeq.push(trapC);
+      trapSeq.push(trapD);
+
+      var yNode = new Node(seg, 'y', trapCNode, trapDNode);
+      var xNode2 = new Node(q,'x', yNode, trapBNode);
+      var xNode1 = new Node(p, 'x', trapANode, xNode2);
+      trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, xNode1));
+    }
+    else { //more than 1 intersecting trap
+      var newTraps = []
+      var prevUpper = null;
+      var prevLower = null;
+
+      for (var j=0;j<intersectingTraps.length;j++) {
+        var trap = intersectingTraps[j];
+        if (j === 0) { //trap containing P
+          var trapA = new Trapezoid(trap.topEdge,trap.bottomEdge,trap.leftP,p);
+          var trapB = new Trapezoid(trap.topEdge, seg, p, trap.rightP);
+          var trapC = new Trapezoid(seg, trap.bottomEdge, p, trap.rightP);
+
+          trapA.setUpperLeft(trap.upperLeft());
+          trapA.setUpperRight(trapB);
+          trapA.setLowerLeft(trap.lowerLeft());
+          trapA.setLowerRight(trapC);
+
+          trapB.setUpperLeft(trapA);
+          trapB.setUpperRight(null);
+          trapB.setLowerLeft(trapA);
+          trapB.setLowerRight(null);
+
+          trapC.setUpperLeft(trapA);
+          trapC.setUpperRight(null);
+          trapC.setLowerLeft(trapA);
+          trapC.setLowerRight(null);
+
+          trapSeq.push(trapA);
+          trapSeq.push(trapB);
+          trapSeq.push(trapC);
+
+          trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, makeTree([trapB,trapC, trapA])));
+        }
+        else if (j === intersectingTraps.length - 1) { //trap containing q
+
+          var segTrapIntersect = trap.segIntersectionUnfiltered(seg);
+          var intersectsVerticalSide = segTrapIntersect[2] != null || segTrapIntersect[3] != null;
+          var intersectsObliqueSide = segTrapIntersect[0] != null || segTrapIntersect[1] != null;
+
+          if (intersectsVerticalSide && intersectsObliqueSide)
+            throw "WHAT WHAT IN THE BUTT";
+
+          var trapA = null;
+          var trapB = null;
+          var trapC = null;
+          var trapD = null;
+          if (intersectsVerticalSide) {
+            trapB = new Trapezoid(trap.topEdge, seg, trap.leftP, q);
+            trapC = new Trapezoid(seg, trap.bottomEdge, trap.leftP, q);
+            trapD = new Trapezoid(trap.topEdge, trap.bottomEdge, q, trap.rightP);
+          } else if (intersectsObliqueSide) {
+            trap
+          }
+
+          trapB.setUpperLeft(prevUpper);
+          trapB.setUpperRight(trapD);
+          trapB.setLowerLeft(prevUpper);
+          trapB.setLowerRight(trapD);
+
+          trapC.setUpperLeft(prevUpper);
+          trapC.setLowerLeft(prevLower);
+          trapC.setUpperRight(trapD);
+          trapC.setLowerRight(trapD);
+
+          trapD.setNeighbours(trapB, trap.upperRight(), trapC, trap.lowerRight());
+
+          trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, makeTree([trapB,trapC, trapD])));
+        }
+        else { //general trap
+
+        }
+      }
     }
   }
-}
+  trapHistory.push([copyTrapArr(trapSeq), trapSearch, copyTrapArr(intersectingTraps)]);
+
+  return [trapSeq,trapSearch,[],trapHistory];
+}*/
 //generate a trapezoidal map, and a structure supporting point location queries
 //input: segments
 //output: trap sequence and trap search tree
@@ -71,9 +203,10 @@ function generateTrapMap(segments) {
     var p = segment[0];
     var q = segment[1];
 
-    var intersectingTraps = followSegment(trapSeq, trapSearch, segment);
+    var intersectingTraps = followSegment2(trapSeq, trapSearch, segment);
     console.log('the intesrecasd');
     console.log(intersectingTraps);
+    console.log(trapSearch);
 
     var trapSeqCopy = [];
     var trapSearchCopy = trapSearch;
@@ -186,7 +319,7 @@ function generateTrapMap(segments) {
       var trap3Node = new Node(trap3,'leaf',null,null);
       var trap4Node = new Node(trap4,'leaf',null,null);
 
-      trap1.node = trap1Node;
+      /*trap1.node = trap1Node;
       trap2.node = trap2Node;
       trap3.node = trap3Node;
       trap4.node = trap4Node;
@@ -196,12 +329,25 @@ function generateTrapMap(segments) {
       trapSeq.push(trap3);
       trapSeq.push(trap4);
 
-      var yNode = new Node(segment, 'y', trap2Node, trap3Node);
+      var segment2 = [new Point(0,0), new Point(1, 1)];
+
+      console.log('the ynode segment');
+      console.log(segment);
+			console.log([trap2Node,trap3Node]);*/
+
+      var yNode = new Node(segment,'y', trap2Node, trap3Node);
+      //yNode.stored = segment;
+      console.log('ynode');
+      console.log([yNode,trap2Node,trap3Node]);
       var xNode2 = new Node(q,'x', yNode, trap4Node);
+      console.log('xnode2');
+      console.log(xNode2);
       var xNode1 = new Node(p, 'x', trap1Node, xNode2);
+      console.log('xnode1 before replace');
+      console.log(xNode1)
       trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, xNode1));
       console.log('1 intersecting trap first case');
-      console.log(trapSeq);
+      console.log([trapSeq,trapSearch, xNode1, trap1Node]);
 
     } else {  //update for more than 1 intersecting trap
 
@@ -264,6 +410,9 @@ function generateTrapMap(segments) {
             trapC.setLowerRight(trap.lowerRight());
             trapC.setLowerLeft(trapA);
 
+            var ABCTree = makeTree([trapB,trapC,trapA]);
+            console.log("ABC Tree");
+            console.log(ABCTree);
             trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, makeTree([trapB,trapC, trapA])));
           } else if (horzSegIntersections.length === 1) {
             console.log('1 horz seg intersected');
@@ -349,21 +498,23 @@ function generateTrapMap(segments) {
             else
               newRoot = new Node(trapB.rightP,'x',node1,node2)
 
-
+              console.log('new tree for trap containing p: ');
+            console.log(newRoot);
             //var newRoot = new Node(Math.max(trapB.leftP.x, trapB.rightP.x), 'x', node1,node2);
-
+            console.log('trapsearch');
+            console.log(trapSearch);
             trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, newRoot));
             console.log('search tree after p case');
             console.log(trapSearch);
 
             trapSeq = trapSeq.concat([trapA,trapB,trapC,trapD]);
-
-            //TODO update tree
           } else {
             console.log('the fury cometh');
           }
         }
         else if (j === intersectingTraps.length - 1) { //trap containing q
+          console.log('trap containing q:');
+          console.log(trap);
           var vertExt = new Line(1,0,q.x);
           var vertExtIntersections = trap.lineIntersection(vertExt);
           vertExtIntersections.sort(function(p1,p2) { return p1.y - p2.y});
@@ -381,6 +532,8 @@ function generateTrapMap(segments) {
 
             trapSeq = trapSeq.concat([trapA,trapB,trapC]);
 
+            //trapA.setNeighbours(trap.Upper)
+
             trapA.setUpperLeft(trap.upperLeft());
             trapA.setUpperRight(trapC);
             trapA.setLowerLeft(null);
@@ -391,6 +544,7 @@ function generateTrapMap(segments) {
             trapB.setLowerLeft(null);
             trapB.setUpperLeft(null);
 
+            trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, makeTree([trapA,trapB,trapC])));
             //TODO update tree, set neighbours
           }
           else if (horzSegIntersections.length === 1) {
@@ -431,7 +585,14 @@ function generateTrapMap(segments) {
                                   [vertExtIntersections[1], trap.bottomEdge[1]],
                                   q, trap.rightP);
 
-            trapSeq = trapSeq.concat([trapA,trapB,trapC,trapD]);
+            console.log('trapA');
+            console.log(trapA);
+            trapSeq = trapSeq.concat([trapA, trapB, trapC, trapD]);
+
+            var trapANode = new Node(trapA, "leaf",null,null);
+            var trapABCTree = makeTree([trapB,trapC,trapD]);
+            var xNode1 = new Node(horzSegIntersection, 'x', trapANode, trapABCTree);
+            trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, xNode1));
             //TODO update tree, set neighbours
           }
           else
@@ -546,7 +707,7 @@ function generateTrapMap(segments) {
           console.log(trap.lineIntersection(ext2));
         }
 
-        intersectionPoints = intersectionPoints.uniqueObjects(["x","y"]);
+        intersectionPoints = intersectionPoints.(["x","y"]);
 
         console.log('intersection points; ');
         console.log(intersectionPoints);
@@ -612,6 +773,60 @@ function generateTrapMap(segments) {
   return [trapSeq,trapSearch, allIntersectionPoints, trapHistory];
 }
 
+/*function followSegment2(trapSeq,trapSearch,segment) {
+  var p = segment[0];
+  var q = segment[1];
+  var trapSequence = new Array();
+  var loc = locate(trapSearch.root, p);
+  var leftTrap = loc.data;
+  leftTrap.node = loc;
+
+  trapSequence.push(leftTrap);
+
+  var trap = trapSequence[0];
+
+  //sort trap seq by x then y increasing (top left to bottom right)
+  while(segSide(q,trap.topEdge) < 0 || q.x > trap.rightP.x) {
+
+
+  }
+
+}*/
+
+function followSegment2(trapSeq, trapSearch, segment) {
+  var p = segment[0];
+  var q = segment[1];
+  var seg = new ParametricSegment(p,q);
+  var samplePoints = 100; //increase to increase accuracy
+
+  var trapSequence = new Array();
+  var leftNode = locate(trapSearch.root, p);
+  var leftTrap = leftNode.stored;
+
+  trapSequence[0] = leftTrap;
+  var ti = 0;
+  var prevTrap = trapSequence[ti];
+
+  console.log('seg:');
+  console.log(seg);
+  for (var i=1;i<=samplePoints;i++) {
+    var t = i/samplePoints;
+    var segPoint = seg.evaluate(t);
+    //console.log('segPoint')
+    var currentTrap = locate(trapSearch.root,seg.evaluate(t)).stored;
+    if (!currentTrap.trapEquals(prevTrap)) {
+      console.log('follow trap changed : ' + i + ", " + t);
+      console.log(segPoint);
+      trapSequence[++ti] = currentTrap;
+      prevTrap = currentTrap;
+    }
+  }
+  console.log('follow trap2 returning: ');
+  console.log(trapSequence);
+  return trapSequence;
+}
+
+
 //assuming trapSeq is sorted with arrow from topleft to downright, down first
 //go down, then right
 //returns sequence of traps intersecting segment, sorted left to right
@@ -624,7 +839,11 @@ function followSegment(trapSeq, trapSearch, segment) {
   var loc = locate(trapSearch.root, p);
   var leftTrap = loc.data;
   leftTrap.node = loc;
-  trapSequence.push(leftTrap); //TODO will not work if p is already present (pg 130)
+  trapSequence[0] = leftTrap; //TODO will not work if p is already present (pg 130)
+
+  console.log('p lies in:')
+  console.log(leftTrap);
+  console.log(trapSequence);
 
   var i = 0;
   var trap = trapSequence[0];
