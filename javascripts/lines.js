@@ -26,6 +26,9 @@ function lineFromPoints(p,q) {
   var y1 = p.y;
   var y2 = q.y;
 
+	if (x2 === x1)
+		return new Line(1,0,x1);
+
   var m = (y2 - y1) / (x2 - x1);
   var c = y1 - (m * x1);
 

@@ -120,13 +120,18 @@ Trapezoid.prototype.rightEdge = function() {
 }
 
 Trapezoid.prototype.toPoints = function() {
+
     var leftLine = new Line(1,0,this.leftP.x);
     var rightLine = new Line(1,0,this.rightP.x);
 
     var topLeft = lineIntersect(lineFromSegment(this.topEdge), leftLine);
     var topRight = lineIntersect(lineFromSegment(this.topEdge),rightLine);
+
+		console.log()
     var bottomLeft = lineIntersect(lineFromSegment(this.bottomEdge), leftLine);
     var bottomRight = lineIntersect(lineFromSegment(this.bottomEdge), rightLine);
+			//console.log('to points');
+			//console.log([topLeft,topRight,bottomLeft,bottomRight]);
 
     return [topLeft, topRight, bottomLeft, bottomRight];
   }
@@ -146,10 +151,28 @@ Trapezoid.prototype.trapEquals = function(trap2) {
 
 Trapezoid.prototype.lineIntersection = function(line1) {
   console.log('trap.lineintesrection');
+		console.log(this);
+
   var p1 = lineSegIntersect(line1,this.topEdge);
   var p2 = lineSegIntersect(line1,this.bottomEdge);
-  var p3 = lineIntersect(line1,this.leftEdge());
-  var p4 = lineIntersect(line1,this.rightEdge());
+
+	console.log([p1,p2]);
+	var leftLine = new Line(1,0,this.leftP.x);
+	var rightLine = new Line(1,0,this.rightP.x);
+	var topLine = lineFromSegment(this.topEdge);
+	var botLine = lineFromSegment(this.bottomEdge);
+
+	var leftSeg  = [lineIntersect(leftLine, topLine), lineIntersect(leftLine, botLine)];
+	var rightSeg = [lineIntersect(rightLine, topLine),lineIntersect(rightLine, botLine)];
+		console.log('leftSeg, rightSeg');
+	console.log([leftLine,rightLine,leftSeg,rightSeg, this.bottomEdge]);
+
+
+
+	console.log('blah');
+  var p3 = lineSegIntersect(line1,leftSeg);
+	console.log('p3: ' + p3);
+  var p4 = lineSegIntersect(line1,rightSeg);
   console.log([line1,p1,p2,p3,p4]);
 
   return _.filter([p1,p2,p3,p4], function(elem) { return (elem !== null); } );
@@ -158,8 +181,17 @@ Trapezoid.prototype.lineIntersection = function(line1) {
 Trapezoid.prototype.segIntersection = function(seg1) {
   var p1 = segSegIntersect(seg1,this.topEdge);
   var p2 = segSegIntersect(seg1,this.bottomEdge);
-  var p3 = lineSegIntersect(this.leftEdge(),seg1);
-  var p4 = lineSegIntersect(this.rightEdge(),seg1);
+
+		var leftLine = new Line(1,0,this.leftP.x);
+	var rightLine = new Line(1,0,this.rightP.x);
+	var topLine = lineFromSegment(this.topEdge);
+	var botLine = lineFromSegment(this.bottomEdge);
+
+	var leftSeg  = [lineIntersect(leftLine, topLine), lineIntersect(leftLine, botLine)];
+	var rightSeg = [lineIntersect(rightLine, topLine),lineIntersect(rightLine, botLine)];
+
+  var p3 = segSegIntersect(leftSeg,seg1);
+  var p4 = segSegIntersect(rightSeg,seg1);
 
   return _.filter([p1,p2,p3,p4], function(elem) { return (elem !== null); } );
 }
@@ -167,9 +199,20 @@ Trapezoid.prototype.segIntersection = function(seg1) {
 Trapezoid.prototype.segIntersectionUnfiltered = function(seg1) {
   var p1 = segSegIntersect(seg1,this.topEdge);
   var p2 = segSegIntersect(seg1,this.bottomEdge);
-  var p3 = lineSegIntersect(this.leftEdge(),seg1);
-  var p4 = lineSegIntersect(this.rightEdge(),seg1);
 
+	var leftLine = new Line(1,0,this.leftP.x);
+	var rightLine = new Line(1,0,this.rightP.x);
+	var topLine = lineFromSegment(this.topEdge);
+	var botLine = lineFromSegment(this.bottomEdge);
+
+	var leftSeg  = [lineIntersect(leftLine, topLine), lineIntersect(leftLine, botLine)];
+	var rightSeg = [lineIntersect(rightLine, topLine),lineIntersect(rightLine, botLine)];
+
+  var p3 = segSegIntersect(leftSeg,seg1);
+  var p4 = segSegIntersect(rightSeg,seg1);
+
+	console.log('segunfil');
+	console.log([leftLine,rightLine,topLine,botLine, leftSeg, rightSeg, p1, p2, p3, p4]);
   return [p1,p2,p3,p4];
 }
 
@@ -230,7 +273,6 @@ function SearchTree(root) {
   this.root = root;
 }
 
-
 function locate(root, point) {
   //console.log('locating:')
   //console.log([root,point]);
@@ -268,10 +310,7 @@ function findParent(root, node) {
 	if (root === node)
 		return null;
 
-  console.log('findparnet');
-  console.log([root,node]);
   if (root.left === node || root.right === node) {
-    console.log('returning this node');
     return root;
   }
 
@@ -281,28 +320,20 @@ function findParent(root, node) {
     return parent;
   parent = findParent(root.right,node);
 
-  console.log('returning');
-  console.log(parent);
   return parent;
 }
 
 //replace subtree rooted at node1 by subtree at node2
 function replaceNode(root,node1,node2) {
-  console.log('replace node');
-  console.log([root,node1,node2]);
   var node1Parent = findParent(root,node1);
-  console.log('parent:');
-  console.log(node1Parent);
   if (node1Parent === null) //node1 is root
     return node2;
 
   if (node1Parent.left === node1) {
     node1Parent.left = node2;
-    console.log('left replaced');
   }
   else if (node1Parent.right === node1) {
     node1Parent.right = node2;
-    console.log('right replaced');
   }
   else
     console.log('the end is neigh');
@@ -350,8 +381,12 @@ function makeTree(traps) {
         console.log('LENGTH 3...')
         console.log([traps,node1,node3]);
 
+		traps[2].node = node3;
+
     var xDiv = null;
     var xNode = null;
+		console.log('maketree for 3 traps:');
+		console.log(traps);
     if (!((traps[0].leftP.x === traps[1].leftP.x) && (traps[0].rightP.x === traps[1].rightP.x)))
       return null;
 

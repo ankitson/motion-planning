@@ -42,7 +42,6 @@ function sortCW(points) {
 function drawPoints(layer, points) {
   for (var i=0;i<points.length;i++) {
     var p = points[i];
-    console.log('drawing point: ' + p.x + ',' + p.y);
     var ptObj = new Kinetic.Circle({
       x: p.x,
       y: p.y,
@@ -72,7 +71,7 @@ function highlightTrap(trap, layer) {
       fill: 'red',
       stroke: 'black',
       closed: true,
-      opacity: 1
+      opacity: 0.5
     });
 
   layer.clear();
@@ -81,8 +80,8 @@ function highlightTrap(trap, layer) {
 }
 
 function drawTree(node, layer, origin, depth) {
-  var xDist = 100 * (6 - depth)/2;
-  var yDist = 50 * (6 - depth)/2;
+  var xDist = 100 * (10 - depth)/2;
+  var yDist = 50 * (10 - depth)/2;
   if (node === null)
     return layer;
 
@@ -183,7 +182,6 @@ function drawTree2(node, graph, id) {
     label = Math.round(node.stored.x).toString();
   }
 
-	console.log([node,graph,id,leftNodeID,lrNodeID]);
 	graph.addNode(id.toString(), { label: label, fill: "#fff"});
 	var color = getRandomColor();
 	graph.addEdge(id.toString(), leftNodeID.toString(), { stroke: '#333', fill: color});
@@ -244,9 +242,10 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer, intersectingTr
               elem.bottomEdge === trap.bottomEdge &&
               elem.leftP === trap.leftP &&
               elem.rightP === trap.rightP);})) {
-      trapObj.stroke('red');
+      trapObj.stroke('green');
       trapObj.strokeWidth(10);
       trapObj.strokeAlpha(1);
+			trapObj.dash([10,5]);
     }
 
 
@@ -277,18 +276,28 @@ $(document).ready(function() {
 
   var segment1 = [new Point(300,300), new Point(700,500)];
   var segment2 = [new Point(400,400), new Point(600,50)];
-  var segment3 = [new Point(0,0), new Point(380,600)];
-  var segment4 = [new Point(1,1), new Point(300,600)];
-  var segment5 = [new Point(340,400), new Point(370,270)];
+  var segment3 = [new Point(5,5), new Point(395,600)];
+  var segment4 = [new Point(3,3), new Point(300,600)];
+  var segment5 = [new Point(340,300), new Point(500,340)];
   var segment6 = [new Point(380,390), new Point(407,369)];
-  var segments = [];
-  segments = segments.concat([segment1]);
-  //segments = segments.concat([segment2]);
+	var segment7 = [new Point(320,220), new Point(350, 200)];
+	var segment8 = [new Point(329,204), new Point(396,409)];
+	var segment9 = [new Point(500,145), new Point(580,190)];
+
+	var segment11 = [new Point(351,425), new Point(447,240)];
+	  var segments = [segment1,segment11];
+	var segment10 = [new Point(346,337), new Point(450,220)];
+	//segments = segments.concat([segment6, segment2]);
+  //segments = segments.concat([segment5]);
+	//segments = segments.concat([segment2]);
   //segments = segments.concat([segment3]);
   //segments = segments.concat([segment4]);
-  segments = segments.concat([segment5]);
-	segments = segments.concat([segment2]);
-  //segments = segments.concat([segment6]);
+	//segments = segments.concat([segment1]);
+	//segments = segments.concat([segment10]);
+	//segments = segments.concat([segment6]);
+	//segments = segments.concat([segment7]);
+	//segments = segments.concat([segment8]);
+	//segments = segments.concat([segment9]);
 
   var square = [[new Point(50,50), new Point(50,450)], [new Point(50,50), new Point(450,50)],
                 [new Point(50,450), new Point(450,450)], [new Point(450,50), new Point(450,450)]];
@@ -300,9 +309,8 @@ $(document).ready(function() {
   var trapSearch = trapMap[1];
   var intersectionPoints = trapMap[2];
   var trapHistory = trapMap[3];
-
-  console.log('generated trap map:');
-  console.log(trapMap);
+	var segsPermutation = trapMap[4];
+	window.activeHighlightTree = trapSearch;
 
   var stage = new Kinetic.Stage({
     container: 'container',
@@ -316,8 +324,8 @@ $(document).ready(function() {
     x: 0,
     y: 0,
     fontFamily: 'Arial',
-    fontSize: 12,
-    fill: "blue",
+    fontSize: 20,
+    fill: "black",
     stroke: null,
   })
 
@@ -334,7 +342,7 @@ $(document).ready(function() {
   background.add(boundingBox);
 
   stage.add(background);
-  stage.add(mouseLayer);
+
 
   console.log('history');
   console.log(trapHistory);
@@ -349,6 +357,7 @@ $(document).ready(function() {
   var trapsToObjs = draw(trapLayer,trapHistory[trapHistory.length-1][0], trapHistory[trapHistory.length-1][1], segments, segLayer);
   stage.add(trapLayer);
   stage.add(segLayer);
+	stage.add(mouseLayer);
   stage.add(treeLayer);
 
   var index = trapHistory.length - 1;
@@ -359,18 +368,22 @@ $(document).ready(function() {
     trapLayer = new Kinetic.Layer();
     segLayer = new Kinetic.Layer();
 
-    trapsToObjs = draw(trapLayer,trapHistory[index][0], trapHistory[index][1], _.take(segments,index+1), segLayer, trapHistory[index][2]);
+    trapsToObjs = draw(trapLayer,trapHistory[index][0], trapHistory[index][1], _.take(segsPermutation,index+1), segLayer, trapHistory[index][2]);
     stage.add(trapLayer);
     stage.add(segLayer);
 
     treeLayer.remove();
     treeLayer = drawTree(trapHistory[index][1], treeLayer, new Point(1000,200));
     stage.add(treeLayer);
+
+		window.activeHighlightTree = trapHistory[index][1];
   });
 
 
   window.highlightedTrapObj = null;
 
+				console.log('active tree:')
+		console.log(window.activeHighlightTree);
 
   $(stage.getContent()).on('mousemove', function (event) {
     var mousePos = stage.getPointerPosition();
@@ -381,14 +394,54 @@ $(document).ready(function() {
     mousePosObject.setText(mouseX+","+mouseY);
     mouseLayer.draw();
 
-
-
     var mousePoint = new Point(mouseX,mouseY);
-    var mouseTrap = locate(trapHistory[index][1].root,mousePoint).stored;
+
+    var mouseTrap = locate(window.activeHighlightTree.root,mousePoint).stored;
 
     highlightTrap(mouseTrap,trapLayer);
 
   });
+
+	window.previousPoint = null;
+	$(stage.getContent()).on('click', function (event) {
+		var mousePos = stage.getPointerPosition();
+		var mouseX = parseInt(mousePos.x);
+		var mouseY = parseInt(mousePos.y);
+		var mousePoint = new Point(mouseX,mouseY);
+
+		if (window.previousPoint === null)
+			window.previousPoint = mousePoint;
+		else {
+			var seg = [window.previousPoint, mousePoint];
+			if (window.previousPoint.x > mousePoint.x)
+				seg.reverse();
+
+			segments.push(seg);
+
+			var trapMap = generateTrapMap(segments);
+  		var trapSeq = trapMap[0];
+  		var trapSearch = trapMap[1];
+  		var intersectionPoints = trapMap[2];
+  		var trapHistory = trapMap[3];
+			var segsPermutation = trapMap[4];
+
+			trapLayer.remove();
+			segLayer.remove();
+			treeLayer.remove();
+			trapLayer = new Kinetic.Layer();
+			segLayer = new Kinetic.Layer();
+			draw(trapLayer, trapSeq, trapSearch, segments, segLayer, null);
+			treeLayer = drawTree(trapSearch.root, treeLayer, new Point(1000,800), 0);
+
+			stage.add(trapLayer);
+			stage.add(segLayer);
+			stage.add(treeLayer);
+
+			window.previousPoint = null;
+			window.activeHighlightTree = trapSearch;
+		}
+
+	});
 
 	var treeGraph = drawTree2(trapSearch.root, new Graph(), 1)[0];
 	console.log('tree graph');
@@ -397,27 +450,6 @@ $(document).ready(function() {
 	//layouter.layout();
 	//var renderer = new Graph.Renderer.Raphael('tree', treeGraph, 400,400);
 	//renderer.draw();
-
-  console.log('NODE TEST');
-  var node1 = new Node(null, "leaf", null, null);
-      console.log('node1');
-      console.log(node1);
-      var yNode = new Node([new Point(0,0), new Point(1,1)], 'y', null, null);
-      console.log('trap 1 node');
-      console.log(node1);
-      var xNode2 = new Node(new Point(2,2),'x', yNode, null);
-            console.log('trap 1 node');
-      console.log(node1);
-      var xNode1 = new Node(new Point(3,3), 'x', node1, xNode2);
-      console.log('trap 1 node');
-      console.log(node1);
-      console.log('xnode1 before replace');
-  console.log(xNode1);
-
-  var seg = [new Point(0,0), new Point(1,1)];
-  var leafNode = new Node(trapSeq[0], 'leaf', null, null);
-  var yNodeTest = new Node(seg, 'y', leafNode, null);
-  console.log(yNodeTest);
 
 });
 
