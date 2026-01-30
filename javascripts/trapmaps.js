@@ -1,14 +1,3 @@
-console.log('line seg intersect tests');
-var line1 = new Line(1,2,3);
-var seg1 = [new Point(1,1), new Point(100,100)];
-//console.log(lineSegIntersect(line1,seg1));
-
-var line2 = new Line(3,2,1);
-//console.log(lineSegIntersect(line2,seg1));
-
-var line3 = new Line(6,8,11);
-//console.log(lineSegIntersect(line3,seg1));
-
 function copyTrapArr(array) {
   var arrayCopy = [];
   for (var j=0;j<array.length;j++) {
@@ -75,21 +64,15 @@ function generateTrapMap(segments) {
         }
       }
     }
-		console.log('after remove');
-		console.log(trapSeq);
 
     var allIntersectionPoints = [];
-    //update tree
     if (intersectingTraps.length === 1) {
-      //console.log(intersectingTraps)
       var trap = intersectingTraps[0];
       var toRemove = trap.node;
 
       var ext1 = new Line(1,0,p.x); //the line x = p.x
       var ext2 = new Line(1,0,q.x);
 
-      //console.log(trap);
-      //console.log(trap.topEdge);
       var topLine = lineFromSegment(trap.topEdge);
       var bottomLine = lineFromSegment(trap.bottomEdge);
 
@@ -130,21 +113,17 @@ function generateTrapMap(segments) {
       trapSeq.push(trap3);
       trapSeq.push(trap4);
 
-			console.log('before that trapseq');
-			//console.log([trapSeq,trap1,trap2,trap3,trap4]);
-			console.log(trapSeq[3]);
-
       var yNode = new Node(segment,'y', trap2Node, trap3Node);
       var xNode2 = new Node(q,'x', yNode, trap4Node);
       var xNode1 = new Node(p, 'x', trap1Node, xNode2);
 
 			trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node,xNode1));
       console.log('1 intersecting trap first case');
-      console.log([trapSeq,trapSearch, trap, findParent(trapSearch.root,trap.node), xNode1, trap1Node]);
+      //console.log([trapSeq,trapSearch, trap, findParent(trapSearch.root,trap.node), xNode1, trap1Node]);
 
     } else {  //update for more than 1 intersecting trap
       console.log('more than 1 intersecting trap');
-      console.log(intersectingTraps);
+      //console.log(intersectingTraps);
       var ext1 = new Line(1,0,p.x);
       var ext2 = new Line(1,0,q.x);
       var exts = [ext1,ext2];
@@ -154,8 +133,8 @@ function generateTrapMap(segments) {
       for (var j=0;j<intersectingTraps.length;j++) {
         var trap = intersectingTraps[j];
         var segIntersections = trap.segIntersectionUnfiltered(segment);
-				console.log('seg intersections:');
-				console.log(segIntersections);
+				//console.log('seg intersections:');
+				//console.log(segIntersections);
 
         var horzSegIntersections = _.first(segIntersections, 2);
         var vertSegIntersections = _.rest(segIntersections,2);
@@ -164,8 +143,8 @@ function generateTrapMap(segments) {
         horzSegIntersections = _.sortBy(horzSegIntersections, ['x','y']);
         vertSegIntersections = _.sortBy(vertSegIntersections, ['x','y']);
 
-				console.log('horz seg/vert seg intersects');
-				console.log([horzSegIntersections,vertSegIntersections]);
+				//console.log('horz seg/vert seg intersects');
+				//console.log([horzSegIntersections,vertSegIntersections]);
 
         if (j === 0) { //trap containing p
           var vertExt = new Line(1,0,p.x);
@@ -234,11 +213,11 @@ function generateTrapMap(segments) {
               newRoot = new Node(trapB.rightP,'x',node1,node2)
 
             trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, newRoot));
-						console.log('p intersects 1 horz seg');
-						console.log([node1,node2,newRoot, trapSearch]);
+						//console.log('p intersects 1 horz seg');
+						//console.log([node1,node2,newRoot, trapSearch]);
             trapSeq = trapSeq.concat([trapA,trapB,trapC,trapD]);
           } else {
-            console.log('the fury cometh');
+            console.log('what?');
           }
         }
         else if (j === intersectingTraps.length - 1) { //trap containing q
@@ -263,7 +242,6 @@ function generateTrapMap(segments) {
             trapSeq = trapSeq.concat([trapA,trapB,trapC]);
 
             trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, makeTree([trapA,trapB,trapC])));
-            //TODO update tree, set neighbours
           }
           else if (horzSegIntersections.length === 1) {
 						console.log('1 horz intersection');
@@ -276,14 +254,7 @@ function generateTrapMap(segments) {
             var extL = new Line(1,0,horzSegIntersection.x);
 
             var extLIntersection = trap.lineIntersection(extL);
-						console.log('extL intersection:')
-						console.log([extLIntersection,horzSegIntersection]);
-						console.log('after iflter');
-						console.log(_.filter(extLIntersection, function(elem) { return Math.abs(elem.y - horzSegIntersection.y) > 0.001; }));
             extLIntersection = _.filter(extLIntersection, function(elem) { return Math.abs(elem.y - horzSegIntersection.y) > 0.001; })[0];//[0];
-
-
-
 
             if (horzSegIntersection.y < q.y) {
               trapA = new Trapezoid([trap.topEdge[0], horzSegIntersection],
@@ -295,8 +266,6 @@ function generateTrapMap(segments) {
               trapC = new Trapezoid([horzSegIntersection, q],
                                         [extLIntersection, vertExtIntersections[1]],
                                         horzSegIntersection, q);
-
-
             } else {
               trapA = new Trapezoid([trap.topEdge[0], extLIntersection],
                                         [trap.bottomEdge[0], horzSegIntersection],
@@ -312,8 +281,6 @@ function generateTrapMap(segments) {
                                   [vertExtIntersections[1], trap.bottomEdge[1]],
                                   q, trap.rightP);
 
-            console.log('traps for 1 horz inter');
-            console.log([trap,trapA,trapB,trapC,trapD]);
             trapSeq = trapSeq.concat([trapA, trapB, trapC, trapD]);
             var trapANode = new Node(trapA, "leaf",null,null);
 						trapA.node = trapANode;
@@ -323,16 +290,14 @@ function generateTrapMap(segments) {
           }
           else {
             console.log('the end is NEIGHHHHHHHHHHHHH');
-						console.log([vertSegIntersections,horzSegIntersections]);
 					}
         }
         else { //general case, part of segment lies within trap, but no endpoints lie in trap
           //the segment intersects 2 vertical sides, 1 oblique 1 vert side or 2 oblique sides
-					console.log("IN GENERAL CASE");
-					console.log(trap);
+					console.log("general case");
           if (vertSegIntersections.length === 2) {
-						console.log('2 vert intersects');
-						console.log(vertSegIntersections);
+						//console.log('2 vert intersects');
+						//console.log(vertSegIntersections);
             var trapA = new Trapezoid([trap.topEdge[0],trap.topEdge[1]],
                                       [vertSegIntersections[0], vertSegIntersections[1]],
                                       vertSegIntersections[0], vertSegIntersections[1], [null,null,null,null],null);
@@ -341,15 +306,12 @@ function generateTrapMap(segments) {
                                       vertSegIntersections[0], vertSegIntersections[1], [null,null,null,null],null);
             trapSeq = trapSeq.concat([trapA,trapB]);
 
-						console.log('trapA,trapB:');
-						console.log([trapA,trapB]);
 						var trapANode = new Node(trapA, "leaf", null, null);
 						var trapBNode = new Node(trapB, "leaf", null, null);
 						trapA.node = trapANode;
 						trapB.node = trapBNode;
 						var newRoot = new Node(segment, 'y', trapANode, trapBNode);
 						trapSearch = new SearchTree(replaceNode(trapSearch.root, trap.node, newRoot));
-            //TODO update tree, set neighbours
           }
           else if (vertSegIntersections.length === 1 && horzSegIntersections.length === 1) {
 						console.log('1 vert 1 horz intscn');
@@ -357,22 +319,13 @@ function generateTrapMap(segments) {
             var horzSegIntersection = horzSegIntersections[0];
             var ext = new Line(1,0,horzSegIntersection.x);
             var vertExtIntersections = trap.lineIntersection(ext);
-						console.log('vert ext interscsctions');
-						console.log(vertExtIntersections);
-						console.log('horzSegIntersection');
-						console.log(vertExtIntersections[0].y - horzSegIntersection.y);
             vertExtIntersections = _.filter(vertExtIntersections, function(elem) { return Math.abs(elem.y - horzSegIntersection.y) > 0.001; });
-						console.log('after filter vet ext');
-						console.log(vertExtIntersections);
 						var vertExtIntersection = vertExtIntersections[0];
 
             var trapA = null;
             var trapB = null; //triangular trap
             var trapC = null;
             if (horzSegIntersection.x < vertSegIntersection.x && horzSegIntersection.y < vertSegIntersection.y) { //<x <y
-							console.log('<x <y case');
-							console.log([horzSegIntersection,vertSegIntersection]);
-							console.log(trap);
 							trapA = new Trapezoid([horzSegIntersection, vertSegIntersection],
 																		[vertExtIntersection, trap.bottomEdge[1]],
 																		horzSegIntersection, vertSegIntersection, [null,null,null,null], null);
@@ -384,7 +337,6 @@ function generateTrapMap(segments) {
 																		trap.leftP, horzSegIntersection, [null,null,null,null], null);
             }
             else if (horzSegIntersection.x < vertSegIntersection.x && horzSegIntersection.y > vertSegIntersection.y) { //<x >y
-							console.log('<x >y case');
               trapA = new Trapezoid([vertExtIntersection, trap.topEdge[1]],
                                     [horzSegIntersection, vertSegIntersection],
                                     horzSegIntersection, vertSegIntersection, [null,null,null,null], null);
@@ -394,10 +346,8 @@ function generateTrapMap(segments) {
               trapC = new Trapezoid([trap.topEdge[0], vertExtIntersection],
                                     [trap.bottomEdge[0], horzSegIntersection],
                                     trap.leftP, horzSegIntersection, [null,null,null,null], null);
-              //TODO update tree, set neighbours
             }
 						else if (horzSegIntersection.x > vertSegIntersection.x && horzSegIntersection.y < vertSegIntersection.y) { //>x <y
-							console.log('>x <y case');
 							trapA = new Trapezoid([vertSegIntersection, horzSegIntersection],
 																		[trap.bottomEdge[0], vertExtIntersection],
 																		vertSegIntersection, horzSegIntersection, [null,null,null,null], null);
@@ -409,7 +359,6 @@ function generateTrapMap(segments) {
 																		horzSegIntersection, trap.rightP, [null,null,null,null], null);
 						}
 						else if (horzSegIntersection.x > vertSegIntersection.x && horzSegIntersection.y > vertSegIntersection.y) { //>x >y
-							console.log('>x >y case');
 							trapA = new Trapezoid([trap.topEdge[0], vertExtIntersection],
 																		[vertSegIntersection, horzSegIntersection],
 																		vertSegIntersection, horzSegIntersection, [null,null,null,null], null);
@@ -494,9 +443,32 @@ function generateTrapMap(segments) {
   return [trapSeq,trapSearch, allIntersectionPoints, trapHistory, segs];
 }
 
-function followSegment3(trapSeq, trapSearch, segment) {
+/*function followSegment3(trapSeq, trapSearch, segment) {
+	var p = segment[0];
+	var q = segment[1];
+	var seg = new ParametricSegment(p,q);
 
-}
+	var trapSequence = new Array();
+	var leftNode = locate(trapSearch.root, p);
+	var leftTrap = leftNode.stored;
+
+	var trap = leftTrap;
+	var ti = 0;
+
+	while ( ti === 0 || intscns.length !== 1 ) {
+		var intscns = trap.segIntersection([seg.p,seg.q]);
+		var ts = _.filter(_.map(intscns, function(p) { return seg.t(p)}), function(t) { return t !== null; }).sort();
+
+
+
+	}
+
+	trapSequence[0] = leftTrap;
+
+
+}*/
+
+
 function followSegment2(trapSeq, trapSearch, segment) {
   var p = segment[0];
   var q = segment[1];

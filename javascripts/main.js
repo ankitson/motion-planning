@@ -250,18 +250,6 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer, intersectingTr
 
 
     trapLayer.add(trapObj);
-    /*trapObj.originalFill = trapObj.getFill();
-    trapObj.originalOpacity = trapObj.getOpacity();
-    trapObj.on('mouseover touchstart', function() {
-      this.fill('red');
-      this.opacity(1);
-      trapLayer.draw();
-    });
-    trapObj.on('mouseout touchend', function() {
-      this.opacity(this.originalOpacity);
-      this.fill(this.originalFill);
-      trapLayer.draw();
-    });*/
     trapsToObjs[trap] = trapObj;
   }
   for (var i=0;i<ptObjs.length;i++) {
@@ -272,8 +260,6 @@ function draw(trapLayer, trapSeq, trapSearch, segments, segLayer, intersectingTr
 
 
 $(document).ready(function() {
-  console.log('This would be the main JS file.');
-
   var segment1 = [new Point(300,300), new Point(700,500)];
   var segment2 = [new Point(400,400), new Point(600,50)];
   var segment3 = [new Point(5,5), new Point(395,600)];
@@ -283,10 +269,9 @@ $(document).ready(function() {
 	var segment7 = [new Point(320,220), new Point(350, 200)];
 	var segment8 = [new Point(329,204), new Point(396,409)];
 	var segment9 = [new Point(500,145), new Point(580,190)];
-
-	var segment11 = [new Point(351,425), new Point(447,240)];
-	  var segments = [segment1,segment11];
-	var segment10 = [new Point(346,337), new Point(450,220)];
+	var segment10 = [new Point(351,425), new Point(447,240)];
+	var segment11 = [new Point(346,337), new Point(450,220)];
+	var segments = [segment1, segment3];
 	//segments = segments.concat([segment6, segment2]);
   //segments = segments.concat([segment5]);
 	//segments = segments.concat([segment2]);
@@ -298,11 +283,6 @@ $(document).ready(function() {
 	//segments = segments.concat([segment7]);
 	//segments = segments.concat([segment8]);
 	//segments = segments.concat([segment9]);
-
-  var square = [[new Point(50,50), new Point(50,450)], [new Point(50,50), new Point(450,50)],
-                [new Point(50,450), new Point(450,450)], [new Point(450,50), new Point(450,450)]];
-
-  //segments = square;
 
   var trapMap = generateTrapMap(segments);
   var trapSeq = trapMap[0];
@@ -343,10 +323,6 @@ $(document).ready(function() {
 
   stage.add(background);
 
-
-  console.log('history');
-  console.log(trapHistory);
-
   $('#historySlider').attr('min', 1);
   $('#historySlider').attr('max', trapHistory.length);
   $('#historySlider').attr('step', 1);
@@ -379,11 +355,7 @@ $(document).ready(function() {
 		window.activeHighlightTree = trapHistory[index][1];
   });
 
-
   window.highlightedTrapObj = null;
-
-				console.log('active tree:')
-		console.log(window.activeHighlightTree);
 
   $(stage.getContent()).on('mousemove', function (event) {
     var mousePos = stage.getPointerPosition();
@@ -443,9 +415,7 @@ $(document).ready(function() {
 
 	});
 
-	var treeGraph = drawTree2(trapSearch.root, new Graph(), 1)[0];
-	console.log('tree graph');
-	console.log(treeGraph);
+	//var treeGraph = drawTree2(trapSearch.root, new Graph(), 1)[0];
 	//var layouter = new Graph.Layout.Spring(treeGraph);
 	//layouter.layout();
 	//var renderer = new Graph.Renderer.Raphael('tree', treeGraph, 400,400);

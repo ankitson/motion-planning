@@ -59,6 +59,33 @@ ParametricSegment.prototype.evaluate = function(t) {
   return new Point(x,y);
 }
 
+ParametricSegment.prototype.t = function(p) {
+	var x = p.x;
+	var y = p.y;
+
+	var t1 = null;
+	var t2 = null;
+	if (this.p.x !== this.q.x)
+		t1 = (x - this.p.x) / (this.q.x - this.p.x)
+	if (this.p.y !== this.q.y)
+		t2 = (y - this.p.y) / (this.q.y - this.p.y)
+
+	if (t1 === null && t2 === null)
+		throw "this isnt even like... a segment man. its a point"
+	else if (t1 === null && t2 !== null)
+		return t2;
+	else if (t1 !== null && t2 === null)
+		return t1;
+	else if (t1 !== null && t2 !== null) {
+		if (Math.abs(t1 - t2) < 0.001)
+			return t1;
+		else
+			return null;
+	}
+
+	return null;
+}
+
 function Trapezoid(topEdge,bottomEdge,leftP,rightP, neighbours, node) {
   this.topEdge = topEdge;
   this.bottomEdge = bottomEdge;
@@ -126,12 +153,8 @@ Trapezoid.prototype.toPoints = function() {
 
     var topLeft = lineIntersect(lineFromSegment(this.topEdge), leftLine);
     var topRight = lineIntersect(lineFromSegment(this.topEdge),rightLine);
-
-		console.log()
     var bottomLeft = lineIntersect(lineFromSegment(this.bottomEdge), leftLine);
     var bottomRight = lineIntersect(lineFromSegment(this.bottomEdge), rightLine);
-			//console.log('to points');
-			//console.log([topLeft,topRight,bottomLeft,bottomRight]);
 
     return [topLeft, topRight, bottomLeft, bottomRight];
   }
@@ -150,13 +173,9 @@ Trapezoid.prototype.trapEquals = function(trap2) {
 }
 
 Trapezoid.prototype.lineIntersection = function(line1) {
-  console.log('trap.lineintesrection');
-		console.log(this);
-
   var p1 = lineSegIntersect(line1,this.topEdge);
   var p2 = lineSegIntersect(line1,this.bottomEdge);
 
-	console.log([p1,p2]);
 	var leftLine = new Line(1,0,this.leftP.x);
 	var rightLine = new Line(1,0,this.rightP.x);
 	var topLine = lineFromSegment(this.topEdge);
@@ -164,16 +183,9 @@ Trapezoid.prototype.lineIntersection = function(line1) {
 
 	var leftSeg  = [lineIntersect(leftLine, topLine), lineIntersect(leftLine, botLine)];
 	var rightSeg = [lineIntersect(rightLine, topLine),lineIntersect(rightLine, botLine)];
-		console.log('leftSeg, rightSeg');
-	console.log([leftLine,rightLine,leftSeg,rightSeg, this.bottomEdge]);
 
-
-
-	console.log('blah');
   var p3 = lineSegIntersect(line1,leftSeg);
-	console.log('p3: ' + p3);
   var p4 = lineSegIntersect(line1,rightSeg);
-  console.log([line1,p1,p2,p3,p4]);
 
   return _.filter([p1,p2,p3,p4], function(elem) { return (elem !== null); } );
 }
@@ -182,7 +194,7 @@ Trapezoid.prototype.segIntersection = function(seg1) {
   var p1 = segSegIntersect(seg1,this.topEdge);
   var p2 = segSegIntersect(seg1,this.bottomEdge);
 
-		var leftLine = new Line(1,0,this.leftP.x);
+	var leftLine = new Line(1,0,this.leftP.x);
 	var rightLine = new Line(1,0,this.rightP.x);
 	var topLine = lineFromSegment(this.topEdge);
 	var botLine = lineFromSegment(this.bottomEdge);
@@ -211,8 +223,6 @@ Trapezoid.prototype.segIntersectionUnfiltered = function(seg1) {
   var p3 = segSegIntersect(leftSeg,seg1);
   var p4 = segSegIntersect(rightSeg,seg1);
 
-	console.log('segunfil');
-	console.log([leftLine,rightLine,topLine,botLine, leftSeg, rightSeg, p1, p2, p3, p4]);
   return [p1,p2,p3,p4];
 }
 
@@ -336,7 +346,7 @@ function replaceNode(root,node1,node2) {
     node1Parent.right = node2;
   }
   else
-    console.log('the end is neigh');
+    console.log('THE END IS NEIGH');
 
   return root;
 
@@ -352,15 +362,11 @@ function makeTree(traps) {
     var commonSegment = null;
     var bottomTrap = null;
     var topTrap = null;
-    console.log('LENGTH 2.....');
-    console.log(traps);
     if (traps[0].bottomEdge[0] === traps[1].topEdge[0] && traps[0].bottomEdge[1] === traps[1].topEdge[1]) {
-      console.log('0 bot = 1 top');
       commonSegment = traps[0].bottomEdge
       bottomTrap = traps[1];
       topTrap = traps[0];
     } else if (traps[0].topEdge[0] === traps[1].bottomEdge[0] && traps[0].topEdge[1] === traps[1].bottomEdge[1]) {
-      console.log('1 bot = 0 top');
       commonSegment = traps[0].topEdge;
       bottomTrap = traps[0];
       topTrap = traps[1];
@@ -376,17 +382,12 @@ function makeTree(traps) {
   }
   else if (traps.length === 3) {
     var node1 = makeTree(_.first(traps,2));
-
     var node3 = new Node(traps[2], "leaf", null, null);
-        console.log('LENGTH 3...')
-        console.log([traps,node1,node3]);
 
 		traps[2].node = node3;
 
     var xDiv = null;
     var xNode = null;
-		console.log('maketree for 3 traps:');
-		console.log(traps);
     if (!((traps[0].leftP.x === traps[1].leftP.x) && (traps[0].rightP.x === traps[1].rightP.x)))
       return null;
 
